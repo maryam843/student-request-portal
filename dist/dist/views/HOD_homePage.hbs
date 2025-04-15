@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+  <meta name="description" content="HOD Dashboard - CoreUI">
+  <meta name="author" content="Your Name">
+  <title>HOD Dashboard</title>
+
+  <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+  <link rel="stylesheet" href="/css/vendors/simplebar.css">
+  <link href="css/style.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-color: #872fc5;
+      --secondary-color: #500187;
+      --hover-color: #5936a0;
+      --light-bg: #cbbae5;
+      font: 'Anton';
+    }
+
+    body {
+      background-color: var(--light-bg);
+      font: 'Anton';
+    }
+
+    .bg-primary {
+      background-color: var(--primary-color) !important;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--hover-color) !important;
+      border-color: var(--hover-color) !important;
+    }
+
+    .sidebar {
+      background-color: var(--secondary-color);
+      color: white;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 10px;
+    }
+
+    .sidebar a:hover {
+      background-color: var(--hover-color);
+      border-radius: 5px;
+    }
+
+    .dashboard-container {
+      background-color: var(--light-bg);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .welcome-heading {
+      color: #f4f1fa;
+      background-color: #6204a6;
+      padding: 15px;
+      text-align: center;
+      font: 'Anton';
+      border-radius: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="d-flex">
+    <nav class="sidebar">
+      <h3 class="text-center">HOD Dashboard</h3>
+      <div class="avatar avatar-md"><img class="avatar-img" src="/uploads/{{profilePic}}" alt="{{email}}">
+      </div>
+      <a  href="/hod-requests?email={{email}}">Student Requests</a>
+      <a  href="/hod/random?email={{email}}">I don't know where to begin!</a>
+      <a href="#">📊 Overview</a>
+      <a href="#">📑 Pending Requests</a>
+      <a href="#">✔️ Approved Requests</a>
+      <a href="#">⚙️ Settings</a>
+      <a href="/login">🚪 Logout</a>
+    </nav>
+    <div class="dashboard-container flex-grow-1">
+      <div class="container">
+        <h1 class="welcome-heading">Welcome {{user.username}}! This is your Head Of Department Home Page!</h1>
+        <p>Manage student requests efficiently!</p>
+        <div class="row">
+          <div class="col-md-4">
+            <div class="card bg-primary text-white p-3">
+              <h5>📑 Pending Requests</h5>
+              <p>12 requests awaiting approval</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-secondary text-white p-3">
+              <h5>✔️ Approved Requests</h5>
+              <p>30 requests approved</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-light text-dark p-3">
+              <h5>⚙️ Settings</h5>
+              <p>Customize your dashboard</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+  <script src="vendors/simplebar/js/simplebar.min.js"></script>
+</body>
+
+</html>

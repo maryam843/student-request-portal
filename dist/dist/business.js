@@ -1,69 +1,49 @@
 const crypto = require('crypto');
 const persistence = require('./persistence');
 const { connectDB } = require('./persistence');
+const nodemailer = require("nodemailer");
 
 /**
- * Registers a new user by validating inputs, hashing the password, and saving the user to the database.
- * @param {string} username - The username of the new user.
- * @param {string} email - The email address of the new user.
- * @param {string} password - The password chosen by the new user.
- * @param {string} repeatPassword - The confirmation password to ensure both passwords match.
- * @param {string} accountType - The type of account (e.g., 'student', 'admin').
- * @returns {Object|boolean} - Returns an object with the email and verification link on success, or false on failure.
+ * Registers a new user after validating inputs, hashing password with salt,
+ * and generating a verification token. Stores the user in the database
+ * and returns the verification link.
  */
-async function registerUser(username, email, password, repeatPassword, accountType) {
-    // Ensure accountType is provided
-    if (!accountType) {
-        return false;
-    }
+async function registerUser(username, email, password, repeatPassword, accountType, college, dob, ID, nationality, address, phone, profilePic) {
+    if (!accountType || !password || password !== repeatPassword) return false;
 
-    // Ensure password is valid and of sufficient length
-    if (!password) {
-        return false;
-    }
-
-    // Ensure repeatPassword matches password
-    if (password !== repeatPassword) {
-        return false;
-    }
-
-    // Ensure email format is valid
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return false;
-    }
+    if (!emailRegex.test(email)) return false;
 
     const existingUser = await persistence.getUserByEmail(email);
-    if (existingUser) {
-        return false; // Return early if the email exists
-    }
+    if (existingUser) return false;
 
     try {
-        // Hash the password using crypto
-        const salt = crypto.randomBytes(16).toString('hex'); // Generate a salt
-        const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+        const salt = crypto.randomBytes(16).toString('hex');
+        const hashedPassword = crypto.createHash('sha256').update(password + salt).digest('hex');
+        const verificationToken = crypto.randomBytes(20).toString('hex');
 
-        // Generate a verification token
-        let verificationToken = crypto.randomBytes(20).toString('hex');
-
-        // Create new user object
-        let newUser = {
+        const newUser = {
             username,
             email: email.toLowerCase(),
             passwordHash: hashedPassword,
-            salt: salt, // Store the salt
-            accountType: accountType,
+            salt,
+            accountType,
             verified: false,
             verificationToken,
+            college,
+            dob,
+            ID,
+            nationality,
+            address,
+            phone,
+            profilePic
         };
 
-        // Save the user to the database
         await persistence.createRegistration(newUser);
 
-        // Return success with verification link
         return {
             email,
-            verificationLink: `http://localhost:3000/verify-email?token=${verificationToken}`
+            verificationLink: `http://localhost:8000/verify-email?token=${verificationToken}`
         };
     } catch (error) {
         return false;
@@ -71,61 +51,160 @@ async function registerUser(username, email, password, repeatPassword, accountTy
 }
 
 /**
- * Verifies a user by checking the provided token.
- * @param {string} token - The verification token sent to the user.
- * @returns {boolean} - Returns true if the token is valid and the user is verified, otherwise false.
+ * Verifies a user by matching the verification token with a stored record.
  */
 async function verifyUser(token) {
     return await persistence.verifyUserToken(token);
 }
 
 /**
- * Authenticates a user by checking the email and password combination.
- * @param {string} email - The email address of the user.
- * @param {string} password - The password entered by the user.
- * @returns {Object|boolean} - Returns the user object if authentication is successful, otherwise false.
+ * Authenticates a user by comparing the hashed input password with the stored hash.
  */
 async function authenticateUser(email, password) {
     const user = await persistence.getUserByEmail(email);
-    if (!user) {
-        return false;
-    }
+    if (!user) return null;
 
-    // Compare the provided password with the stored hash
-    const hashedPassword = crypto.pbkdf2Sync(password, user.salt, 1000, 64, 'sha512').toString('hex');
-    if (hashedPassword !== user.passwordHash) {
-        return false;
-    }
-
-    return user;
+    const hashedPassword = crypto.createHash('sha256').update(password + user.salt).digest('hex');
+    return hashedPassword === user.passwordHash ? user : null;
 }
 
 /**
- * Creates a new session for an authenticated user.
- * @param {Object} user - The authenticated user object.
- * @returns {string} - The session key for the new session.
+ * Generates a secure token for password reset and stores it in the database with expiry.
+ */
+async function generateResetToken(email) {
+    const user = await persistence.getUserByEmail(email);
+    if (!user) {
+        throw new Error('No user found with that email');
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
+    await persistence.storeResetToken(email, token, expiresAt);
+
+    return token;
+}
+
+/**
+ * Resets a user's password using a valid token. Hashes and stores the new password.
+ */
+async function resetPassword(token, newPassword, repeatPassword) {
+    if (!newPassword || newPassword !== repeatPassword) {
+        return { success: false, message: "Passwords do not match or are empty." };
+    }
+
+    const db = await connectDB();
+    const user = await db.collection('users').findOne({
+        resetToken: token,
+        resetTokenExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+        return { success: false, message: "Invalid or expired reset token." };
+    }
+
+    const salt = crypto.randomBytes(16).toString('hex');
+    await persistence.updatePassword(user.email, newPassword, salt);
+
+    return { success: true, message: "Password reset successful." };
+}
+
+/**
+ * Creates a new session for a user with a unique session key and stores it in the database.
  */
 async function createSession(user) {
-    const sessionKey = crypto.randomUUID();  // Unique session key using UUID
+    const sessionKey = crypto.randomUUID();
     const sessionData = {
         key: sessionKey,
-        userId: user._id,  // Use the user's ID from the database
+        userId: user._id,
         created_at: new Date(),
-        expiry: new Date(Date.now() + 1000 * 60 * 30) // Session expiry in 30 minutes
+        expiry: new Date(Date.now() + 1000 * 60 * 30)
     };
-    await persistence.storeSession(sessionData); // Store session in database
-    return sessionKey;  // Return the session key to be used in the app
+    await persistence.storeSession(sessionData);
+    return sessionKey;
 }
 
-
 /**
- * Retrieves a user from the database by their email.
- * @param {string} email - The email address of the user.
- * @returns {Object|null} - Returns the user object if found, otherwise null.
+ * Retrieves a user object from the database by email.
  */
 async function getUserByEmail(email) {
     const db = await connectDB();
-    return await db.collection('users').findOne({ email: email.toLowerCase() }); // Convert to lowercase for consistency
+    return await db.collection('users').findOne({ email: email.toLowerCase() });
+}
+
+/**
+ * Sends a plain-text email using Nodemailer with Gmail transport.
+ */
+async function sendEmail(to, subject, body) {
+    const transporter = nodemailer.createTransport({
+        service: "Gmail",
+        auth: { user: "youremail@gmail.com", pass: "yourpassword" }
+    });
+
+    await transporter.sendMail({
+        from: '"Dept Head" <youremail@gmail.com>',
+        to,
+        subject,
+        text: body
+    });
+}
+
+/**
+ * Calculates estimated request completion time based on queue size and working hours (9am–5pm).
+ */
+function calculateEstimatedCompletionTime(countInQueue, baseMinutes = 15) {
+    const now = new Date();
+    let minutesToAdd = countInQueue * baseMinutes;
+    let estimated = new Date(now.getTime());
+
+    while (minutesToAdd > 0) {
+        let hour = estimated.getHours();
+        if (hour >= 9 && hour < 17) {
+            estimated.setMinutes(estimated.getMinutes() + 1);
+            minutesToAdd--;
+        } else {
+            estimated.setHours(9, 0, 0, 0);
+            estimated.setDate(estimated.getDate() + 1);
+        }
+    }
+
+    return estimated;
+}
+
+/**
+ * Creates a student request and calculates an estimated completion time.
+ * Inserts the request into the database with default "Pending" status.
+ */
+async function createRequest(data) {
+    const count = await persistence.getPendingCountByCategory(data.category);
+    const estimate = calculateEstimatedCompletionTime(count);
+    const request = {
+        ...data,
+        status: "Pending",
+        timestamp: new Date(),
+        estimatedCompletion: estimate
+    };
+
+    await persistence.insertRequest(request);
+    return request;
+}
+
+/**
+ * Updates the request status and adds a note.
+ * Intended for HoD or admin processing of student requests.
+ */
+async function processRequest(requestId, status, note, studentEmail) {
+    await persistence.updateRequestStatus(requestId, status, note);
+}
+
+/**
+ * Retrieves all requests submitted by a student using their email.
+ */
+async function getRequestsByStudent(email) {
+    if (!email) {
+        throw new Error('Email is required to fetch student requests.');
+    }
+    const requests = await persistence.getRequestsByEmail(email);
+    return requests;
 }
 
 module.exports = {
@@ -134,4 +213,11 @@ module.exports = {
     createSession,
     verifyUser,
     getUserByEmail,
+    generateResetToken,
+    resetPassword,
+    createRequest,
+    processRequest,
+    calculateEstimatedCompletionTime,
+    sendEmail,
+    getRequestsByStudent
 };
