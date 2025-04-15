@@ -1,0 +1,17 @@
+<h2>Rate This App</h2>
+<form method="POST" action="/rate">
+    <input type="hidden" name="csrfToken" value="{{csrfToken}}">
+
+    <label for="rating">Your Rating (1–5):</label>
+    <select name="rating" id="rating" required>
+        <option value="">Select</option>
+        <option value="1">1 - Terrible</option>
+        <option value="2">2 - Bad</option>
+        <option value="3">3 - Okay</option>
+        <option value="4">4 - Good</option>
+        <option value="5">5 - Excellent</option>
+    </select>
+
+    <br><br>
+    <button type="submit">Submit Rating</button>
+</form>

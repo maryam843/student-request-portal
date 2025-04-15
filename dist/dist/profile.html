@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <base href="./">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>CoreUI Free Bootstrap Admin Template</title>
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/examples.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-light min-vh-100 d-flex flex-row align-items-center">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card mb-4 mx-4">
+                        <div class="card-body p-4">
+                            <h1>Profile Setup</h1>
+                            <p class="text-medium-emphasis">Lets Finish setting up your profile</p>
+                            <form action="/register" method="POST">
+
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/college.jpeg" alt="Account Icon" width="20"
+                                            height="20">
+                                    </span>
+                                    <select class="form-control" name="college" required>
+                                        <option value="" disabled selected hidden>Select College</option>
+                                        <option value="Business">Business</option>
+                                        <option value="IT">Computing and IT</option>
+                                        <option value="Engineering">Engineering</option>
+                                        <option value="General Education">General Education</option>
+                                        <option value="Health">Health Science</option>
+                                    </select>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/th.jpeg" alt="Account Icon" width="20"
+                                            height="20">
+                                    </span>
+                                    <select class="form-control" name="Degree" required>
+                                        <option value="" disabled selected hidden>Select Degree</option>
+                                        <option value="Bachelors">Bachelors</option>
+                                        <option value="Masters">Masters</option>
+                                        <option value="PhD">PhD</option>
+                                    </select>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/program.png" alt="Account Icon" width="20"
+                                            height="20">
+                                    </span>
+                                    <input class="form-control" type="text" name="Program" placeholder="Program"
+                                        required>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/dob.jpeg" alt="Account Icon" width="20"
+                                            height="20">
+                                    </span>
+                                    <input class="form-control" type="date" name="dob" placeholder="DOB" required>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/age.jpeg" alt="Account Icon" width="20"
+                                            height="20">
+                                    </span>
+                                    <input class="form-control" type="number" id="age" name="age" placeholder="Age"
+                                        min="0" max="100" required>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/nationality.jpeg" alt="Account Icon"
+                                            width="20" height="20">
+                                    </span>
+                                    <input class="form-control" type="text" name="Nationality" placeholder="Nationality"
+                                        required>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/address.jpeg" alt="Account Icon" width="20"
+                                            height="20">
+                                    </span>
+                                    <input class="form-control" type="text" name="Address" placeholder="Address"
+                                        required>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/phone.jpeg" alt="Account Icon" width="20"
+                                            height="20">
+                                    </span>
+                                    <input class="form-control" type="tel" name="phone" placeholder="phone" required>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <img src="vendors/@coreui/icons/svg/profile.png" alt="Upload Pic" width="20"
+                                            height="20">
+                                    </span>
+                                    <input class="form-control" type="file" name="profilePic" accept="image/*" required>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <a href="/home" class="btn btn-primary"> Continue to Homepage </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+</body>
+
+</html>
