@@ -1,6 +1,11 @@
 /**
  * Fills the database with demo data: 1 Head of Department, 3 students
- * and 15 requests. All names and emails are fake (@example.com).
+ * and 15 requests in all categories and statuses. All names and emails are
+ * made up ("... Demo", @example.com); they are not real people.
+ *
+ * For the demo video: every student has Pending requests the HoD can approve,
+ * and sara@example.com has one approved request she has not opened yet, so
+ * her dashboard shows the "New update" badge.
  *
  * WARNING: this deletes all existing users, requests and sessions in the
  * database from MONGODB_URI. Only run it on a local/demo database.
