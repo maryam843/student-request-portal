@@ -19,14 +19,18 @@ Student:
 - Submit a request. It gets an estimated completion time: 15 minutes for every request already waiting in the same category, counted only from 9am to 5pm, Sunday to Thursday
 - See my requests, open one to read the Head of Department's note, and cancel requests that are still pending
 - A badge shows decisions I have not opened yet
-- Profile page where I can change my picture
+- Profile page where I can change my picture (users without one get a grey default avatar)
 - Forgot / reset password (the reset link is printed in the server console)
 
 Head of Department:
 - Dashboard with the number of pending, approved and rejected requests
-- List of all requests, with filters by category and semester
+- List of all requests, newest first, with filters by category, semester and status
 - A queue for each category, and a button that picks a random pending request
 - Approve or reject a request with a note
+
+Both roles:
+- The same left menu on every page after login, with the open page highlighted; on a phone it opens from the menu button
+- Detail pages have a "Back to ..." link, and a short message confirms each action (for example "Request submitted.")
 
 ## Tech stack
 
