@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
+const rateLimit = require('express-rate-limit');
 const MongoStore = require('connect-mongo');
 const business = require('./business');
 const path = require('path');
@@ -77,6 +78,25 @@ function requireRole(accountType) {
 }
 
 const port = process.env.PORT || 8000;
+
+/**
+ * Allow at most 10 tries per 15 minutes from the same IP address, then show a friendly message
+ * on the same page. Used on login, register and forgot password to slow down password guessing
+ * and spam. For login only failed attempts count.
+ */
+function limitTries(view, onlyCountFailures = false) {
+    return rateLimit({
+        windowMs: 15 * 60 * 1000,
+        limit: 10,
+        standardHeaders: 'draft-7',
+        legacyHeaders: false,
+        skipSuccessfulRequests: onlyCountFailures,
+        requestWasSuccessful: (req, res) => !res.locals.failedAttempt,
+        handler: (req, res) => {
+            res.status(429).render(view, { error: "Too many tries. Please wait 15 minutes and try again." });
+        }
+    });
+}
 
 // Multer Storage Configuration
 const storage = multer.diskStorage({
@@ -180,7 +200,7 @@ app.post('/upload-profile', requireLogin, uploadProfilePic, async (req, res) => 
 /**
  * Handle user registration
  */
-app.post('/register', uploadProfilePic, async (req, res) => {
+app.post('/register', limitTries('register'), uploadProfilePic, async (req, res) => {
     const [name, email, password, confirmPassword, college] =
         ['name', 'email', 'password', 'confirmPassword', 'college'].map(field => text(req.body[field]));
     const profilePic = req.file ? req.file.filename : null;
@@ -279,7 +299,7 @@ app.get('/forgot-password', (req, res) => {
 /**
  * Handle forgot password logic and generate reset token
  */
-app.post('/forgot-password', async (req, res) => {
+app.post('/forgot-password', limitTries('forgot-password'), async (req, res) => {
     const email = text(req.body.email).toLowerCase();
     // Same message whether the email exists or not, so nobody can test which emails are registered
     const message = "If this email is registered, a reset link has been sent. (Demo: the link is printed in the server console.)";
@@ -330,7 +350,7 @@ app.post('/reset-password', async (req, res) => {
 /**
  * Handle user login authentication
  */
-app.post('/login', async (req, res) => {
+app.post('/login', limitTries('login', true), async (req, res) => {
     try {
         const email = text(req.body.email);
         const password = text(req.body.password);
@@ -340,6 +360,7 @@ app.post('/login', async (req, res) => {
 
         const user = await business.authenticateUser(email, password);
         if (!user) {
+            res.locals.failedAttempt = true;
             return res.redirect("/login?error=Invalid email or password. Please check and try again.");
         }
 
