@@ -159,7 +159,7 @@ function requireRole(accountType) {
 const port = process.env.PORT || 8000;
 
 /**
- * Allow at most 10 tries per 15 minutes from the same IP address, then show a friendly message
+ * Allow at most 10 tries per 15 minutes from the same IP address, then show a message
  * on the same page. Used on login, register and forgot password to slow down password guessing
  * and spam. For login only failed attempts count.
  */
@@ -352,13 +352,13 @@ app.post('/register', limitTries('register'), uploadProfilePic, async (req, res)
 app.get("/verify-email", async (req, res) => {
     const token = text(req.query.token);
     if (!token) {
-        return res.redirect("/register?error=Error while verifying your email, please try again.");
+        return res.redirect("/register?error=The verification link is invalid or has already been used.");
     }
     const success = await business.verifyUser(token);
     if (success) {
-        res.redirect("/login?msg=Email verified! Please login to continue.");
+        res.redirect("/login?msg=Email verified. You can now log in.");
     } else {
-        res.redirect("/register?error=Error while verifying your email, please try again.");
+        res.redirect("/register?error=The verification link is invalid or has already been used.");
     }
 });
 
@@ -386,7 +386,7 @@ app.post('/forgot-password', limitTries('forgot-password'), async (req, res) => 
         return res.render('forgot-password', { message });
     } catch (err) {
         console.error("Error generating reset token:", err);
-        return res.render('forgot-password', { error: "Error occurred. Try again later." });
+        return res.render('forgot-password', { error: "Something went wrong. Please try again." });
     }
 });
 
@@ -411,12 +411,12 @@ app.post('/reset-password', async (req, res) => {
     try {
         const result = await business.resetPassword(token, password, confirmPassword);
         if (result.success) {
-            return res.redirect("/login?msg=Password updated! Please login with your new password.");
+            return res.redirect("/login?msg=Password updated. Log in with your new password.");
         }
         return res.render('reset-password', { token, error: result.message });
     } catch (err) {
         console.error("Password reset error:", err);
-        return res.render('reset-password', { token, error: "Error updating password. Try again." });
+        return res.render('reset-password', { token, error: "Something went wrong. Please try again." });
     }
 });
 
@@ -434,18 +434,18 @@ app.post('/login', limitTries('login', true), async (req, res) => {
         const user = await business.authenticateUser(email, password);
         if (!user) {
             res.locals.failedAttempt = true;
-            return res.redirect("/login?error=Invalid email or password. Please check and try again.");
+            return res.redirect("/login?error=Invalid email or password.");
         }
 
         if (!user.verified) {
-            return res.redirect("/login?error=Account not verified. Please check your email.");
+            return res.redirect("/login?error=Account not verified. Open the verification link first.");
         }
 
         // Start a fresh session and remember who is logged in
         req.session.regenerate((err) => {
             if (err) {
                 console.error("Error creating session:", err);
-                return res.redirect("/login?error=Something went wrong. Please try again later.");
+                return res.redirect("/login?error=Something went wrong. Please try again.");
             }
             req.session.user = {
                 email: user.email,
@@ -461,7 +461,7 @@ app.post('/login', limitTries('login', true), async (req, res) => {
         });
     } catch (error) {
         console.error("Error during login:", error);
-        return res.redirect("/login?error=Something went wrong. Please try again later.");
+        return res.redirect("/login?error=Something went wrong. Please try again.");
     }
 });
 

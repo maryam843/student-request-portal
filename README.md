@@ -1,6 +1,6 @@
 # Student Request Portal
 
-This is a web app I built for INFS 3201 – Web Technologies 2 at UDST in 2025. Students send requests (course advice, attendance, registration or major change) to their Head of Department, who reviews them in queues and approves or rejects them. In 2026 I went back to it to fix security problems and clean up the code.
+This is a web app I built for INFS 3201 (Web Technologies 2) at UDST in 2025. Students send requests (course advice, attendance, registration or major change) to their Head of Department, who reviews them in queues and approves or rejects them. In 2026 I went back to it to fix security problems and clean up the code.
 
 ## Demo
 
@@ -85,6 +85,6 @@ npm start
 
 ## Credits
 
-Built for INFS 3201 – Web Technologies 2 at UDST (Winter 2025) on the CoreUI 4 admin template (MIT). Security fixes and bug fixes added in 2026.
+Built for INFS 3201 (Web Technologies 2) at UDST (Winter 2025) on the CoreUI 4 admin template (MIT). Security fixes and bug fixes added in 2026.
 
 My code is under the MIT License (see [LICENSE](LICENSE)); the CoreUI files keep their own MIT license.
