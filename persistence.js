@@ -276,7 +276,7 @@ async function countUnreadDecisions(email) {
 }
 
 /**
- * Fetches the profile picture file names of several users, e.g. { "a@b.com": "123.png" }.
+ * Fetches the profile picture file names of several users, e.g. { "sara@example.com": "123.png" }.
  * @param {string[]} emails - The emails of the users.
  * @returns {Promise} Resolves with an object from email to picture (users without one are left out).
  */
