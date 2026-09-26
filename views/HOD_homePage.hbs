@@ -6,7 +6,6 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
   <meta name="description" content="HOD Dashboard - CoreUI">
-  <meta name="author" content="Your Name">
   <title>HOD Dashboard</title>
 
   <link rel="stylesheet" href="/vendors/simplebar/css/simplebar.css">
@@ -91,14 +90,16 @@
   <div class="d-flex">
     <nav class="sidebar">
       <h3 class="text-center">HOD Dashboard</h3>
-      <div class="avatar avatar-md"><img class="avatar-img" src="/uploads/{{profilePic}}" alt="{{email}}">
+      <div class="avatar avatar-md">
+        {{#if profilePic}}
+        <img class="avatar-img" src="/uploads/{{profilePic}}" alt="Profile picture">
+        {{else}}
+        <img class="avatar-img" src="/img/icons/profile.png" alt="No profile picture">
+        {{/if}}
       </div>
       <a  href="/hod-requests">Student Requests</a>
       <a  href="/hod/random">I don't know where to begin!</a>
-      <a href="#">📊 Overview</a>
-      <a href="#">📑 Pending Requests</a>
-      <a href="#">✔️ Approved Requests</a>
-      <a href="#">⚙️ Settings</a>
+      <a href="/profile">👤 My Profile</a>
       <form action="/logout" method="POST">
         <button type="submit" class="logout-btn">🚪 Logout</button>
       </form>
@@ -111,19 +112,20 @@
           <div class="col-md-4">
             <div class="card bg-primary text-white p-3">
               <h5>📑 Pending Requests</h5>
-              <p>12 requests awaiting approval</p>
+              <p>{{pendingCount}} request(s) awaiting approval</p>
+              <a href="/hod-requests" class="text-white">Review requests</a>
             </div>
           </div>
           <div class="col-md-4">
             <div class="card bg-secondary text-white p-3">
               <h5>✔️ Approved Requests</h5>
-              <p>30 requests approved</p>
+              <p>{{approvedCount}} request(s) approved</p>
             </div>
           </div>
           <div class="col-md-4">
             <div class="card bg-light text-dark p-3">
-              <h5>⚙️ Settings</h5>
-              <p>Customize your dashboard</p>
+              <h5>❌ Rejected Requests</h5>
+              <p>{{rejectedCount}} request(s) rejected</p>
             </div>
           </div>
         </div>

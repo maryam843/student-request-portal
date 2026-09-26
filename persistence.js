@@ -399,6 +399,20 @@ async function markRequestAsNotified(requestId) {
 }
 
 /**
+ * Counts the requests for each status, e.g. { Pending: 7, Approved: 4 }.
+ * @returns {Promise} Resolves with an object of status counts.
+ */
+async function getStatusCounts() {
+    const db = await connectDB();
+    const rows = await db.collection("requests").aggregate([
+        { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]).toArray();
+    const counts = {};
+    rows.forEach(row => { counts[row._id] = row.count; });
+    return counts;
+}
+
+/**
  * Fetches all queues with their total and pending counts.
  * @returns {Promise} Resolves with the queue counts.
  */
@@ -452,5 +466,6 @@ module.exports = {
     getStudentNameByEmail,
     markRequestAsNotified,
     getQueuesWithCountsOut,
+    getStatusCounts,
     getStudentByEmail
 };

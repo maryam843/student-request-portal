@@ -399,10 +399,15 @@ app.get("/admin-dashboard", requireRole("department_head"), async (req, res) => 
     const user = await business.getUserByEmail(req.session.user.email);
     if (!user) return res.redirect("/login?error=User not found.");
 
+    const counts = await persistence.getStatusCounts();
+
     res.render('HOD_homePage', { 
         user,
         email: user.email,
-        profilePic: user.profilePic
+        profilePic: user.profilePic,
+        pendingCount: counts.Pending || 0,
+        approvedCount: counts.Approved || 0,
+        rejectedCount: counts.Rejected || 0
     });
 });
 
