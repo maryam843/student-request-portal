@@ -267,14 +267,11 @@ hbs.registerHelper('formatDate', function(date) {
 });
 
 /**
- * Log email details to console (e.g., verification or reset links)
+ * No real emails are sent: print the link to the console instead, as one line
+ * (label + link) with blank lines around it, so it is easy to find and copy
  */
-function logEmailDetails(to, verificationLink) {
-    console.log("---------------------------------");
-    console.log("Email Sent:");
-    console.log(`To: ${to}`);
-    console.log(`Verification Link:\n${verificationLink}`);
-    console.log("---------------------------------\n");
+function logEmailLink(to, label, link) {
+    console.log(`\nEmail to ${to}\n${label}: ${link}\n`);
 }
 
 
@@ -336,7 +333,7 @@ app.post('/register', limitTries('register'), uploadProfilePic, async (req, res)
             return showForm("Registration failed. Check the email address and try again.");
         }
 
-        logEmailDetails(userData.email, userData.verificationLink);
+        logEmailLink(userData.email, "Verification link", userData.verificationLink);
 
         return res.redirect("/login?msg=Account created. Open the verification link (printed in the server console), then log in.");
     } catch (error) {
@@ -381,7 +378,7 @@ app.post('/forgot-password', limitTries('forgot-password'), async (req, res) => 
         if (user) {
             const token = await business.generateResetToken(email);
             const resetLink = `http://localhost:${port}/reset-password?token=${token}`;
-            console.log(`Password Reset Link: ${resetLink}`);
+            logEmailLink(email, "Reset link", resetLink);
         }
         return res.render('forgot-password', { message });
     } catch (err) {
