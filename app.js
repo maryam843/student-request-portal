@@ -19,7 +19,7 @@ app.set('views', path.join(__dirname, 'views'));
 // Middleware Setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -160,13 +160,13 @@ app.post('/register', upload.single('profilePic'), async (req, res) => {
 app.get("/verify-email", async (req, res) => {
     const { token } = req.query;
     if (!token) {
-        return res.redirect("/register.html?error=Error while verifying your email, please try again.");
+        return res.redirect("/register?error=Error while verifying your email, please try again.");
     }
     const success = await business.verifyUser(token);
     if (success) {
-        res.redirect("/login.html?msg=Email verified! Please login to continue.");
+        res.redirect("/login?msg=Email verified! Please login to continue.");
     } else {
-        res.redirect("/register.html?error=Error while verifying your email, please try again.");
+        res.redirect("/register?error=Error while verifying your email, please try again.");
     }
 });
 
@@ -253,16 +253,16 @@ app.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
-            return res.redirect("/login.html?error=Please enter both email and password.");
+            return res.redirect("/login?error=Please enter both email and password.");
         }
 
         const user = await business.authenticateUser(email, password);
         if (!user) {
-            return res.redirect("/login.html?error=Invalid email or password. Please check and try again.");
+            return res.redirect("/login?error=Invalid email or password. Please check and try again.");
         }
 
         if (!user.verified) {
-            return res.redirect("/login.html?error=Account not verified. Please check your email.");
+            return res.redirect("/login?error=Account not verified. Please check your email.");
         }
 
         // Redirect based on account type
@@ -273,7 +273,7 @@ app.post('/login', async (req, res) => {
         }
     } catch (error) {
         console.error("Error during login:", error);
-        return res.redirect("/login.html?error=Something went wrong. Please try again later.");
+        return res.redirect("/login?error=Something went wrong. Please try again later.");
     }
 });
 
@@ -283,10 +283,10 @@ app.post('/login', async (req, res) => {
  */
 app.get("/admin-dashboard", async (req, res) => {
     const { email } = req.query;
-    if (!email) return res.redirect("/login.html?error=Please login first.");
+    if (!email) return res.redirect("/login?error=Please login first.");
 
     const user = await business.getUserByEmail(email);
-    if (!user) return res.redirect("/login.html?error=User not found.");
+    if (!user) return res.redirect("/login?error=User not found.");
 
     res.render('HOD_homePage', { 
         user,
@@ -301,10 +301,10 @@ app.get("/admin-dashboard", async (req, res) => {
  */
 app.get('/student-dashboard', async (req, res) => {
     const { email } = req.query;
-    if (!email) return res.redirect("/login.html?error=Please login first.");
+    if (!email) return res.redirect("/login?error=Please login first.");
 
     const user = await business.getUserByEmail(email);
-    if (!user) return res.redirect("/login.html?error=User not found.");
+    if (!user) return res.redirect("/login?error=User not found.");
 
     const requests = await persistence.getRequestsByEmail(user.email); 
     const badgeCount = requests.filter(r => r.studentNotified === false).length;
@@ -321,14 +321,14 @@ app.get('/student-dashboard', async (req, res) => {
  * Serve the registration page
  */
 app.get("/register", (req, res) => {
-    res.sendFile(path.join(__dirname, "register.html"));
+    res.render("register");
 });
 
 /**
  * Serve the login page (root or /login route)
  */
 app.get(["/", "/login"], (req, res) => {
-    res.sendFile(path.join(__dirname, "login.html"));
+    res.render("login");
 });
 
 /**
