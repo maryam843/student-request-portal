@@ -52,6 +52,8 @@
               <div class="card-body">
                 <h1>Login</h1>
                 <p class="text-medium-emphasis">Sign In to your account</p>
+                {{#if error}}<div class="alert alert-danger">{{error}}</div>{{/if}}
+                {{#if msg}}<div class="alert alert-success">{{msg}}</div>{{/if}}
                 <form action="/login" method="POST">
                   <div class="input-group mb-3">
                     <span class="input-group-text">
@@ -102,8 +104,6 @@
   <!-- CoreUI and necessary plugins-->
   <script src="/vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
   <script src="/vendors/simplebar/js/simplebar.min.js"></script>
-  <script>
-  </script>
 
 </body>
 

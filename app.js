@@ -417,14 +417,14 @@ app.get('/student-dashboard', requireRole("student"), async (req, res) => {
  * Serve the registration page
  */
 app.get("/register", (req, res) => {
-    res.render("register");
+    res.render("register", { error: text(req.query.error) });
 });
 
 /**
  * Serve the login page (root or /login route)
  */
 app.get(["/", "/login"], (req, res) => {
-    res.render("login");
+    res.render("login", { error: text(req.query.error), msg: text(req.query.msg) });
 });
 
 /**
