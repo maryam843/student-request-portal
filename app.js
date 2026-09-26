@@ -22,6 +22,8 @@ app.set('query parser', 'simple');
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Browsers ask for /favicon.ico by default; the app's icon is an SVG
+app.get('/favicon.ico', (req, res) => res.redirect(301, '/favicon.svg'));
 
 if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET is not set. Copy .env.example to .env and fill it in.");
