@@ -9,6 +9,9 @@ let client;
  */
 async function connectDB() {
     if (!client) {
+        if (!uri) {
+            throw new Error("MONGODB_URI is not set. Copy .env.example to .env and fill it in.");
+        }
         client = new MongoClient(uri);
         await client.connect();
     }

@@ -1,7 +1,6 @@
 const crypto = require('crypto');
 const persistence = require('./persistence');
 const { connectDB } = require('./persistence');
-const nodemailer = require("nodemailer");
 
 /**
  * Registers a new user after validating inputs, hashing password with salt,
@@ -132,23 +131,6 @@ async function getUserByEmail(email) {
 }
 
 /**
- * Sends a plain-text email using Nodemailer with Gmail transport.
- */
-async function sendEmail(to, subject, body) {
-    const transporter = nodemailer.createTransport({
-        service: "Gmail",
-        auth: { user: "youremail@gmail.com", pass: "yourpassword" }
-    });
-
-    await transporter.sendMail({
-        from: '"Dept Head" <youremail@gmail.com>',
-        to,
-        subject,
-        text: body
-    });
-}
-
-/**
  * Calculates estimated request completion time based on queue size and working hours (9am–5pm).
  */
 function calculateEstimatedCompletionTime(countInQueue, baseMinutes = 15) {
@@ -218,6 +200,5 @@ module.exports = {
     createRequest,
     processRequest,
     calculateEstimatedCompletionTime,
-    sendEmail,
     getRequestsByStudent
 };

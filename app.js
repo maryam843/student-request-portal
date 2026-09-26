@@ -1,12 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const business = require('./business');
-const nodemailer = require('nodemailer');
 const path = require('path');
 const multer = require('multer');
-const exphbs = require('express-handlebars');
 const app = express();
 const hbs = require("hbs");
-const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
 const persistence = require("./persistence");
 const crypto = require('crypto');
@@ -21,7 +19,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use((req, res, next) => {
@@ -32,7 +29,7 @@ app.use((req, res, next) => {
     next();
 });
 
-const port = 8000;
+const port = process.env.PORT || 8000;
 
 // Multer Storage Configuration
 const storage = multer.diskStorage({
