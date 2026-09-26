@@ -1,61 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>My Profile</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="stylesheet" href="/vendors/simplebar/css/simplebar.css">
-    <link rel="stylesheet" href="/css/vendors/simplebar.css">
-    <link href="/css/style.css" rel="stylesheet">
-</head>
-
-<body>
-    <div class="bg-light min-vh-100 d-flex flex-row align-items-center">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="card mb-4 mx-4">
-                        <div class="card-body p-4">
-                            <h1>My Profile</h1>
-                            {{#if error}}<div class="alert alert-danger">{{error}}</div>{{/if}}
-                            {{#if msg}}<div class="alert alert-success">{{msg}}</div>{{/if}}
-
-                            <div class="text-center mb-3">
-                                {{avatar user.profilePic "rounded-circle profile-photo" 120}}
-                                <h4 class="mt-2">{{user.username}}</h4>
-                                <p class="text-medium-emphasis">{{user.email}}</p>
-                            </div>
-
-                            <ul class="list-group mb-4">
-                                <li class="list-group-item">
-                                    <img src="/img/icons/college.jpeg" alt="" width="20" height="20" class="me-2">
-                                    <strong>College:</strong> {{#if user.college}}{{user.college}}{{else}}—{{/if}}
-                                </li>
-                            </ul>
-
-                            <form action="/upload-profile" method="POST" enctype="multipart/form-data">
-                                <label class="form-label">Change profile picture (JPG, PNG, GIF or WEBP, max 2 MB)</label>
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/profile.png" alt="Upload Pic" width="20"
-                                            height="20">
-                                    </span>
-                                    <input class="form-control" type="file" name="profilePic" accept="image/jpeg,image/png,image/gif,image/webp" required>
-                                </div>
-                                <button class="btn btn-primary" type="submit">Upload picture</button>
-                                <a href="{{dashboard}}" class="btn btn-secondary">Back to Dashboard</a>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-4">
+      <div class="card-body p-4">
+        <div class="text-center mb-3">
+          {{avatar currentUser.profilePic "rounded-circle profile-photo" 120}}
+          <h2 class="h4 mt-2">{{currentUser.username}}</h2>
+          <p class="text-medium-emphasis">{{currentUser.email}}</p>
         </div>
-    </div>
-    <script src="/vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
-    <script src="/vendors/simplebar/js/simplebar.min.js"></script>
-</body>
 
-</html>
+        <ul class="list-group mb-4">
+          <li class="list-group-item">
+            <strong>College:</strong> {{#if currentUser.college}}{{currentUser.college}}{{else}}Not set{{/if}}
+          </li>
+        </ul>
+
+        <form action="/upload-profile" method="POST" enctype="multipart/form-data">
+          <label for="profilePic" class="form-label">Change profile picture (JPG, PNG, GIF or WEBP, max 2 MB)</label>
+          <input class="form-control mb-3" type="file" id="profilePic" name="profilePic"
+            accept="image/jpeg,image/png,image/gif,image/webp" required>
+          <button class="btn btn-primary" type="submit">Upload Picture</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

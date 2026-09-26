@@ -1,32 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Request Details</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link href="/css/style.css" rel="stylesheet">
-</head>
-
-<body class="bg-light">
-  <div class="container py-4">
-    <div class="card p-4">
-      <h1>📄 Request Details</h1>
-
-      <p><strong>Semester:</strong> {{request.semester}}</p>
-      <p><strong>Category:</strong> {{request.category}}</p>
-      <p><strong>Status:</strong> {{request.status}}</p>
-      <p><strong>Description:</strong> {{request.description}}</p>
-      <p><strong>Submitted:</strong> {{formatDate request.timestamp}}</p>
-      <p><strong>Note from HoD:</strong> {{#if request.note}}{{request.note}}{{else}}—{{/if}}</p>
-
-      <div>
-        <a href="/student-requests" style="color: green;">⬅️ Back to My Requests</a> |
-        <a href="/student-dashboard" style="color: green;">Back to Home</a>
-      </div>
-    </div>
+<div class="card mb-4">
+  <div class="card-body">
+    <dl class="details mb-0">
+      <dt>Semester</dt>
+      <dd>{{request.semester}}</dd>
+      <dt>Category</dt>
+      <dd>{{request.category}}</dd>
+      <dt>Status</dt>
+      <dd><span class="badge {{statusClass request.status}}">{{request.status}}</span></dd>
+      <dt>Description</dt>
+      <dd class="description">{{request.description}}</dd>
+      <dt>Submitted</dt>
+      <dd>{{formatDate request.timestamp}}</dd>
+      {{#if (eq request.status "Pending")}}
+      <dt>Estimated completion</dt>
+      <dd>{{formatDate request.estimatedCompletion}}</dd>
+      {{/if}}
+      <dt>Note from HoD</dt>
+      <dd>{{#if request.note}}{{request.note}}{{else}}No note.{{/if}}</dd>
+    </dl>
   </div>
-</body>
-
-</html>
+</div>

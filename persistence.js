@@ -266,6 +266,29 @@ async function getRequests(filter = {}) {
 }
 
 /**
+ * Counts the decisions (Approved/Rejected) a student has not opened yet, for the badge.
+ * @param {string} email - The email of the student.
+ * @returns {Promise} Resolves with the number of unread decisions.
+ */
+async function countUnreadDecisions(email) {
+    const db = await connectDB();
+    return await db.collection("requests").countDocuments({ studentEmail: email, studentNotified: false });
+}
+
+/**
+ * Fetches the profile picture file names of several users, e.g. { "a@b.com": "123.png" }.
+ * @param {string[]} emails - The emails of the users.
+ * @returns {Promise} Resolves with an object from email to picture (users without one are left out).
+ */
+async function getProfilePicsByEmails(emails) {
+    const db = await connectDB();
+    const users = await db.collection("users")
+        .find({ email: { $in: emails }, profilePic: { $nin: [null, ""] } }, { projection: { email: 1, profilePic: 1 } })
+        .toArray();
+    return Object.fromEntries(users.map(u => [u.email, u.profilePic]));
+}
+
+/**
  * Marks a request as notified.
  * @param {string} requestId - The ID of the request to mark.
  * @returns {Promise} Resolves once the request is marked as notified.
@@ -337,6 +360,8 @@ module.exports = {
     getRequestsByEmail,
     getStudentNameByEmail,
     markRequestAsNotified,
+    countUnreadDecisions,
+    getProfilePicsByEmails,
     getQueuesWithCountsOut,
     getStatusCounts
 };

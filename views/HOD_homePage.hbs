@@ -1,136 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-  <meta name="description" content="HOD Dashboard - Student Request Portal">
-  <title>HOD Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-
-  <link rel="stylesheet" href="/vendors/simplebar/css/simplebar.css">
-  <link rel="stylesheet" href="/css/vendors/simplebar.css">
-  <link href="/css/style.css" rel="stylesheet">
-
-  <style>
-    :root {
-      --primary-color: #872fc5;
-      --secondary-color: #500187;
-      --hover-color: #5936a0;
-      --light-bg: #cbbae5;
-      font: 'Anton';
-    }
-
-    body {
-      background-color: var(--light-bg);
-      font: 'Anton';
-    }
-
-    .bg-primary {
-      background-color: var(--primary-color) !important;
-    }
-
-    .btn-primary {
-      background-color: var(--primary-color) !important;
-      border-color: var(--primary-color) !important;
-    }
-
-    .btn-primary:hover {
-      background-color: var(--hover-color) !important;
-      border-color: var(--hover-color) !important;
-    }
-
-    .sidebar {
-      background-color: var(--secondary-color);
-      color: white;
-      height: 100vh;
-      padding: 20px;
-    }
-
-    .sidebar a {
-      color: white;
-      text-decoration: none;
-      display: block;
-      padding: 10px;
-    }
-
-    .logout-btn {
-      background: none;
-      border: none;
-      color: white;
-      padding: 10px;
-      width: 100%;
-      text-align: left;
-    }
-
-    .logout-btn:hover,
-    .sidebar a:hover {
-      background-color: var(--hover-color);
-      border-radius: 5px;
-    }
-
-    .dashboard-container {
-      background-color: var(--light-bg);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .welcome-heading {
-      color: #f4f1fa;
-      background-color: #6204a6;
-      padding: 15px;
-      text-align: center;
-      font: 'Anton';
-      border-radius: 12px;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="d-flex">
-    <nav class="sidebar">
-      <h3 class="text-center">HOD Dashboard</h3>
-      <div class="avatar avatar-md">
-        {{avatar profilePic "avatar-img"}}
-      </div>
-      <a  href="/hod-requests">Student Requests</a>
-      <a  href="/hod/random">I don't know where to begin!</a>
-      <a href="/profile">👤 My Profile</a>
-      <form action="/logout" method="POST">
-        <button type="submit" class="logout-btn">🚪 Logout</button>
-      </form>
-    </nav>
-    <div class="dashboard-container flex-grow-1">
-      <div class="container">
-        <h1 class="welcome-heading">Welcome {{user.username}}! This is your Head Of Department Home Page!</h1>
-        <p>Manage student requests efficiently!</p>
-        <div class="row">
-          <div class="col-md-4">
-            <div class="card bg-primary text-white p-3">
-              <h5>📑 Pending Requests</h5>
-              <p>{{pendingCount}} request(s) awaiting approval</p>
-              <a href="/hod-requests" class="text-white">Review requests</a>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card bg-secondary text-white p-3">
-              <h5>✔️ Approved Requests</h5>
-              <p>{{approvedCount}} request(s) approved</p>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card bg-light text-dark p-3">
-              <h5>❌ Rejected Requests</h5>
-              <p>{{rejectedCount}} request(s) rejected</p>
-            </div>
-          </div>
-        </div>
+<div class="row">
+  <div class="col-sm-6 col-lg-4">
+    <div class="card mb-4 text-white bg-warning">
+      <div class="card-body">
+        <div class="stat-number">{{pendingCount}}</div>
+        <div>Pending requests</div>
+        <a href="/hod-requests" class="btn btn-light btn-sm mt-2">Review Requests</a>
       </div>
     </div>
   </div>
-  <script src="/vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
-  <script src="/vendors/simplebar/js/simplebar.min.js"></script>
-</body>
-
-</html>
+  <div class="col-sm-6 col-lg-4">
+    <div class="card mb-4 text-white bg-success">
+      <div class="card-body">
+        <div class="stat-number">{{approvedCount}}</div>
+        <div>Approved requests</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-4">
+    <div class="card mb-4 text-white bg-danger">
+      <div class="card-body">
+        <div class="stat-number">{{rejectedCount}}</div>
+        <div>Rejected requests</div>
+      </div>
+    </div>
+  </div>
+</div>

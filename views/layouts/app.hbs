@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{title}} | Student Request Portal</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link href="/css/style.css" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+
+<body>
+  <!-- Left menu: always open on wide screens, slides in from the menu button on small screens -->
+  <div class="sidebar sidebar-dark sidebar-fixed" id="sidebar">
+    <a class="sidebar-brand" href="{{dashboard}}">Student Request Portal</a>
+    <ul class="sidebar-nav">
+      {{#each menu}}
+      <li class="nav-item">
+        <a class="nav-link{{#if active}} active{{/if}}" href="{{href}}"{{#if active}} aria-current="page"{{/if}}>
+          <svg class="nav-icon">
+            <use xlink:href="/vendors/@coreui/icons/svg/free.svg#{{icon}}"></use>
+          </svg> {{label}}</a>
+      </li>
+      {{/each}}
+      <li class="nav-item">
+        <form action="/logout" method="POST">
+          <button type="submit" class="nav-link">
+            <svg class="nav-icon">
+              <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use>
+            </svg> Logout</button>
+        </form>
+      </li>
+    </ul>
+  </div>
+
+  <div class="wrapper d-flex flex-column min-vh-100 bg-light">
+    <header class="header header-sticky mb-4">
+      <div class="container-fluid">
+        <button class="header-toggler px-0 me-3 d-md-none" type="button" aria-label="Open menu" aria-controls="sidebar"
+          onclick="coreui.Sidebar.getOrCreateInstance(document.querySelector('#sidebar')).toggle()">
+          <svg class="icon icon-lg">
+            <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-menu"></use>
+          </svg>
+        </button>
+        <a class="header-brand d-md-none" href="{{dashboard}}">Student Request Portal</a>
+        <ul class="header-nav ms-auto">
+          {{#if isStudent}}
+          <li class="nav-item">
+            <a class="nav-link" href="/student-requests" title="Updates on my requests" aria-label="Updates on my requests">
+              <svg class="icon icon-lg">
+                <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-bell"></use>
+              </svg>{{#if badgeCount}}<span class="badge badge-sm bg-danger ms-1">{{badgeCount}}</span>{{/if}}</a>
+          </li>
+          {{/if}}
+          <li class="nav-item dropdown ms-2">
+            <a class="nav-link py-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true"
+              aria-expanded="false" aria-label="Account menu">
+              <div class="avatar avatar-md">{{avatar currentUser.profilePic "avatar-img"}}</div>
+            </a>
+            <div class="dropdown-menu dropdown-menu-end pt-0">
+              <div class="dropdown-header bg-light py-2">
+                <div class="fw-semibold">{{currentUser.username}}</div>
+              </div>
+              <a class="dropdown-item" href="/profile">
+                <svg class="icon me-2">
+                  <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-user"></use>
+                </svg> My Profile</a>
+              <div class="dropdown-divider"></div>
+              <form action="/logout" method="POST">
+                <button type="submit" class="dropdown-item">
+                  <svg class="icon me-2">
+                    <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use>
+                  </svg> Logout</button>
+              </form>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </header>
+
+    <main class="body flex-grow-1 px-3">
+      <div class="container-lg">
+        {{#if backLink}}<a class="back-link" href="{{backLink.href}}">&larr; Back to {{backLink.label}}</a>{{/if}}
+        <h1 class="page-title">{{#if heading}}{{heading}}{{else}}{{title}}{{/if}}</h1>
+        {{#if flash}}<div class="alert alert-{{flash.type}}" role="status">{{flash.text}}</div>{{/if}}
+        {{{body}}}
+      </div>
+    </main>
+  </div>
+
+  <script src="/vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+</body>
+
+</html>

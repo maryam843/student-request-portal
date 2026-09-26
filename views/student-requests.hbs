@@ -1,176 +1,45 @@
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<style>
-  :root {
-    --primary-color: #0e6251;
-    --secondary-color: #0b5345;
-    --hover-color: #117a65;
-    --light-bg: #e6fffa;
-    --pending-bg: #b5b8b1; /* Darker shade for Pending */
-  }
-
-  body {
-    background-color: var(--light-bg);
-    font-family: 'Anton', sans-serif;
-    margin: 10px;
-    padding: 10px;
-  }
-
-  .table {
-    background-color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    border-collapse: collapse;
-    border-radius: 10px;
-  }
-
-  .table th,
-  .table td {
-    vertical-align: middle;
-    padding: 12px;
-    border: 1px solid #ccc;
-  }
-
-  .table th {
-    background-color: var(--primary-color);
-    color: white;
-  }
-
-
-  a {
-    margin-top: 15px;
-    background-color: var(--secondary-color);
-    color: white;
-    padding: 10px 15px;
-    text-decoration: none;
-    border-radius: 4px;
-    display: inline-block;
-    justify-content: center;
-  }
-
-  .center-link {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-    gap: 10px; /* Adds space between the links */
-  }
-
-  a:hover {
-    background-color: var(--hover-color);
-  }
-
-  button {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    text-align: center;
-  }
-
-  button:hover {
-    background-color: var(--hover-color);
-  }
-
-  .cancel-btn-container {
-    display: flex;
-    justify-content: center;
-  }
-
-  h1 {
-    color: #e6fffa;
-    background-color: #0a5446;
-    padding: 15px;
-    text-align: center;
-    font: 'Anton';
-    font-weight: bolder;
-    border-radius: 12px;
-  }
-
-  .cancelled-cell {
-    position: relative;
-  }
-
-  .cancelled-cell::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: #be0a0a;
-    z-index: 1;
-  }
-
-  .pending-cell {
-    background-color:rgb(250, 249, 223);
-    color: #268b55;
-    font-weight: bold;
-  }
-
-  .view-link {
-    font-weight: bold;
-    margin-right: 8px;
-  }
-
-  .new-badge {
-    background-color: #e55353;
-    color: white;
-    border-radius: 8px;
-    padding: 2px 8px;
-    font-size: 0.8em;
-  }
-</style>
-
-<h1>My Requests</h1>
-<table class="table">
-  <tr>
-    <th>Semester</th>
-    <th>Category</th>
-    <th>Description</th>
-    <th>Request Submitted At</th>
-    <th>Status</th>
-    <th>Estimated Resolution By</th>
-    <th>Action</th>
-  </tr>
-
-  {{#each requests}}
-  <tr class="{{#if (eq status "Cancelled")}}cancelled{{else if (eq status "Pending")}}pending-cell{{/if}}">
-    <td class="{{#if (eq status "Cancelled")}}cancelled-cell{{else if (eq status "Pending")}}pending-cell{{/if}}">
-      <strong>{{semester}}</strong>
-    </td>
-    <td class="{{#if (eq status "Cancelled")}}cancelled-cell{{else if (eq status "Pending")}}pending-cell{{/if}}">
-      {{category}}
-    </td>
-    <td class="{{#if (eq status "Cancelled")}}cancelled-cell{{else if (eq status "Pending")}}pending-cell{{/if}}">
-      {{description}}
-    </td>
-    <td class="{{#if (eq status "Cancelled")}}cancelled-cell{{else if (eq status "Pending")}}pending-cell{{/if}}">
-      {{formatDate this.timestamp}}
-    </td>
-    <td class="{{#if (eq status "Cancelled")}}cancelled-cell{{else if (eq status "Pending")}}pending-cell{{/if}}">
-      {{status}}
-    </td>
-    <td class="{{#if (eq status "Cancelled")}}cancelled-cell{{else if (eq status "Pending")}}pending-cell{{/if}}">
-      {{formatDate estimatedCompletion}}
-    </td>
-<td class="{{#if (eq status "Cancelled")}}cancelled-cell{{else if (eq status "Pending")}}pending-cell{{/if}}">
-      <a href="/student/request/{{_id}}" class="view-link">View</a>
-      {{#if (eq studentNotified false)}}<span class="new-badge">New update</span>{{/if}}
-      {{#if (eq status "Pending")}}
-      <div class="cancel-btn-container">
-        <form action="/student-cancel/{{_id}}" method="POST">
-          <button type="submit">Cancel</button>
-        </form>
-      </div>
-      {{/if}}
-    </td>
-  </tr>
-  {{/each}}
-</table>
-
-<div class="center-link">
-  <a href="/student-request">Submit New Request</a>
-  <a href="/student-dashboard">Back to HomePage</a>
-</div> 
-
+{{#if requests.length}}
+<div class="card mb-4">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>Submitted</th>
+          <th>Semester</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Status</th>
+          <th>Estimated completion</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each requests}}
+        <tr class="{{#if (eq status "Cancelled")}}row-cancelled{{/if}}">
+          <td>{{formatDate timestamp}}</td>
+          <td>{{semester}}</td>
+          <td>{{category}}</td>
+          <td>{{description}}</td>
+          <td><span class="badge {{statusClass status}}">{{status}}</span></td>
+          <td>{{#if (eq status "Pending")}}{{formatDate estimatedCompletion}}{{else}}Not applicable{{/if}}</td>
+          <td>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <a href="/student/request/{{_id}}" class="btn btn-sm btn-primary">View</a>
+              {{#if (eq studentNotified false)}}<span class="badge bg-danger">New update</span>{{/if}}
+              {{#if (eq status "Pending")}}
+              <form action="/student-cancel/{{_id}}" method="POST">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+              </form>
+              {{/if}}
+            </div>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{else}}
+<p>You have not sent any requests yet.</p>
+<a href="/student-request" class="btn btn-primary">New Request</a>
+{{/if}}
