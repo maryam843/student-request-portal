@@ -309,70 +309,39 @@ app.post('/register', limitTries('register'), uploadProfilePic, async (req, res)
         ['name', 'email', 'password', 'confirmPassword', 'college'].map(field => text(req.body[field]));
     const profilePic = req.file ? req.file.filename : null;
 
+    // show the form again with the error; the typed name, email and college are kept
+    const showForm = (error) => res.status(400).render('register', { error, form: { name, email, college } });
+
     try {
         if (req.uploadError) {
-            return res.send(`
-                <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
-                    Error: ${req.uploadError}
-                </div>
-                <a href="/register">Go back to Register</a>
-            `);
+            return showForm(req.uploadError);
         }
 
         if (!email || !password || !name) {
-            return res.send(`
-                <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
-                    Error: Missing required fields. Please fill in all details.
-                </div>
-                <a href="/register">Go back to Register</a>
-            `);
+            return showForm("Please fill in your name, email and password.");
         }
 
         if (password !== confirmPassword) {
-            return res.send(`
-                <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
-                    Error: Passwords do not match. Please try again.
-                </div>
-                <a href="/register">Go back to Register</a>
-            `);
+            return showForm("The passwords do not match.");
         }
 
         const existingUser = await business.getUserByEmail(email);
         if (existingUser) {
-            return res.send(`
-                <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
-                    Error: Email already in use. Please use a different email.
-                </div>
-                <a href="/register">Go back to Register</a>
-            `);
+            return showForm("This email is already registered.");
         }
 
         const userData = await business.registerUser(name, email, password, confirmPassword, college, profilePic);
 
         if (!userData) {
-            return res.send(`
-                <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
-                    Error: Registration failed. Please try again later.
-                </div>
-                <a href="/register">Go back to Register</a>
-            `);
+            return showForm("Registration failed. Check the email address and try again.");
         }
 
         logEmailDetails(userData.email, userData.verificationLink);
 
-        return res.send(`
-            <div style="color: green; border: 2px solid green; padding: 10px; margin: 10px;">
-                ✅ Verification Email sent! Check your console and click on the link to verify your account.
-            </div>
-        `);
+        return res.redirect("/login?msg=Account created. Open the verification link (printed in the server console), then log in.");
     } catch (error) {
         console.error("Error during registration:", error);
-        return res.send(`
-            <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
-                Error: Something went wrong. Please try again.
-            </div>
-            <a href="/register">Go back to Register</a>
-        `);
+        return showForm("Something went wrong. Please try again.");
     }
 });
 
@@ -543,7 +512,7 @@ app.get('/student-dashboard', requireRole("student"), async (req, res) => {
  * Serve the registration page
  */
 app.get("/register", (req, res) => {
-    res.render("register", { error: text(req.query.error) });
+    res.render("register", { error: text(req.query.error), form: {} });
 });
 
 /**
