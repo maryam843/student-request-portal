@@ -17,8 +17,9 @@ app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middleware Setup
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// "simple" parsing: ?email[$ne]=x stays a plain text key and does not become a MongoDB operator
+app.set('query parser', 'simple');
+app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(cookieParser());
@@ -46,6 +47,13 @@ app.use(session({
 }));
 
 /**
+ * Return the value only if it is plain text (not an array or object), otherwise ""
+ */
+function text(value) {
+    return typeof value === 'string' ? value.trim() : "";
+}
+
+/**
  * Only let logged-in users through; everybody else goes to the login page
  */
 function requireLogin(req, res, next) {
@@ -64,7 +72,7 @@ function requireRole(accountType) {
             return res.redirect("/login?error=Please login first.");
         }
         if (req.session.user.accountType !== accountType) {
-            return res.status(403).send("You are not allowed to open this page.");
+            return res.status(403).render("error", { message: "You are not allowed to open this page." });
         }
         next();
     };
@@ -171,7 +179,8 @@ app.post('/upload-profile', uploadProfilePic, async (req, res) => {
  * Handle user registration
  */
 app.post('/register', uploadProfilePic, async (req, res) => {
-    const { name, email, password, confirmPassword, college, dob, ID, nationality, address, phone } = req.body;
+    const [name, email, password, confirmPassword, college, dob, ID, nationality, address, phone] =
+        ['name', 'email', 'password', 'confirmPassword', 'college', 'dob', 'ID', 'nationality', 'address', 'phone'].map(field => text(req.body[field]));
     const profilePic = req.file ? req.file.filename : null;
 
     try {
@@ -246,7 +255,7 @@ app.post('/register', uploadProfilePic, async (req, res) => {
  * Handle email verification request
  */
 app.get("/verify-email", async (req, res) => {
-    const { token } = req.query;
+    const token = text(req.query.token);
     if (!token) {
         return res.redirect("/register?error=Error while verifying your email, please try again.");
     }
@@ -276,7 +285,7 @@ app.get('/forgot-password', (req, res) => {
  * Handle forgot password logic and generate reset token
  */
 app.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
+    const email = text(req.body.email);
     try {
         const user = await business.getUserByEmail(email);
         if (!user) {
@@ -296,7 +305,7 @@ app.post('/forgot-password', async (req, res) => {
  * Render password reset form
  */
 app.get('/reset-password', (req, res) => {
-    const { token } = req.query;
+    const token = text(req.query.token);
     if (!token) {
         return res.send("Invalid or expired token");
     }
@@ -317,7 +326,9 @@ app.get('/reset-password', (req, res) => {
  * Handle password reset update
  */
 app.post('/reset-password', async (req, res) => {
-    const { token, password, confirmPassword } = req.body;
+    const token = text(req.body.token);
+    const password = text(req.body.password);
+    const confirmPassword = text(req.body.confirmPassword);
     if (password !== confirmPassword) {
         return res.send(`<p>Passwords do not match. <a href="/reset-password?token=${token}">Try again</a></p>`);
     }
@@ -339,7 +350,8 @@ app.post('/reset-password', async (req, res) => {
  */
 app.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const email = text(req.body.email);
+        const password = text(req.body.password);
         if (!email || !password) {
             return res.redirect("/login?error=Please enter both email and password.");
         }
@@ -461,10 +473,14 @@ app.post("/student-request", requireRole("student"), async (req, res) => {
     const data = {
         studentEmail,
         studentName,
-        semester: req.body.semester,
-        category: req.body.category,
-        description: req.body.description
+        semester: text(req.body.semester),
+        category: text(req.body.category),
+        description: text(req.body.description)
     };
+
+    if (!data.semester || !data.category || !data.description) {
+        return res.status(400).render("error", { message: "Please fill in the semester, category and description." });
+    }
 
     await business.createRequest(data);
     res.redirect("/student-requests");
@@ -476,6 +492,9 @@ app.post("/student-request", requireRole("student"), async (req, res) => {
 app.post("/student-cancel/:id", requireRole("student"), async (req, res) => {
     const requestId = req.params.id;
     const email = req.session.user.email;
+    if (!persistence.isValidId(requestId)) {
+        return res.status(404).render("error", { message: "Request not found." });
+    }
 
     // only cancels the request if it belongs to the logged-in student
     await persistence.cancelRequestById(requestId, email);
@@ -486,7 +505,8 @@ app.post("/student-cancel/:id", requireRole("student"), async (req, res) => {
  * View HoD requests with optional filters (category, semester)
  */
 app.get('/hod-requests', requireRole("department_head"), async (req, res) => {
-    const { category, semester } = req.query;
+    const category = text(req.query.category);
+    const semester = text(req.query.semester);
     let query = {};
 
     if (category) query.category = category;
@@ -498,7 +518,7 @@ app.get('/hod-requests', requireRole("department_head"), async (req, res) => {
         res.render('hod-requests', { requests, queues });
     } catch (err) {
         console.error(err);
-        res.status(500).send("Server error");
+        res.status(500).render("error", { message: "Something went wrong. Please try again." });
     }
 });
 
@@ -524,8 +544,11 @@ app.get("/hod/queue/:category", requireRole("department_head"), async (req, res)
  */
 app.get("/hod/view/:id", requireRole("department_head"), async (req, res) => {
     const requestId = req.params.id;
+    if (!persistence.isValidId(requestId)) {
+        return res.status(404).render("error", { message: "Request not found." });
+    }
     const request = await persistence.getRequestById(requestId);
-    if (!request) return res.status(404).send("Request not found");
+    if (!request) return res.status(404).render("error", { message: "Request not found." });
 
     res.render("hod-request", { request });
 });
@@ -535,15 +558,19 @@ app.get("/hod/view/:id", requireRole("department_head"), async (req, res) => {
  */
 app.post("/hod/request/:id", requireRole("department_head"), async (req, res) => {
     try {
-        const { status, note } = req.body;
+        const status = text(req.body.status);
+        const note = text(req.body.note);
+        if (!persistence.isValidId(req.params.id)) {
+            return res.status(404).render("error", { message: "Request not found." });
+        }
         const request = await persistence.getRequestById(req.params.id);
-        if (!request) return res.status(404).send("Request not found");
+        if (!request) return res.status(404).render("error", { message: "Request not found." });
 
         await business.processRequest(req.params.id, status, note, request.studentEmail);
         res.redirect(`/hod-requests`);
     } catch (error) {
         console.error("Error processing request:", error);
-        res.status(500).send("Error processing request");
+        res.status(500).render("error", { message: "Something went wrong. Please try again." });
     }
 });
 
@@ -552,12 +579,15 @@ app.post("/hod/request/:id", requireRole("department_head"), async (req, res) =>
  */
 app.get('/student/request/:id', requireRole("student"), async (req, res) => {
     const requestId = req.params.id;
+    if (!persistence.isValidId(requestId)) {
+        return res.status(404).render("error", { message: "Request not found." });
+    }
 
     try {
         const request = await persistence.getRequestById(requestId);
         // students can only open their own requests
         if (!request || request.studentEmail !== req.session.user.email) {
-            return res.status(404).send("Request not found");
+            return res.status(404).render("error", { message: "Request not found." });
         }
 
         if (request.studentNotified === false) {
@@ -567,7 +597,7 @@ app.get('/student/request/:id', requireRole("student"), async (req, res) => {
         res.render('student-request-view', { request });
     } catch (err) {
         console.error("Error viewing student request:", err);
-        res.status(500).send("Server error");
+        res.status(500).render("error", { message: "Something went wrong. Please try again." });
     }
 });
 
@@ -606,6 +636,22 @@ app.post('/rate', (req, res) => {
 app.get('/rate', (req, res) => {
     const csrfToken = req.cookies.csrfToken;
     res.render('rate_form', { csrfToken });
+});
+
+/**
+ * Any other address: show a "page not found" error page
+ */
+app.use((req, res) => {
+    res.status(404).render("error", { message: "Page not found." });
+});
+
+/**
+ * If a route throws an error, log it and show an error page instead of crashing
+ * (Express 5 also sends errors from async routes here)
+ */
+app.use((err, req, res, next) => {
+    console.error("Unexpected error:", err);
+    res.status(500).render("error", { message: "Something went wrong. Please try again." });
 });
 
 /**

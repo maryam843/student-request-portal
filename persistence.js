@@ -19,6 +19,16 @@ async function connectDB() {
 }
 
 /**
+ * Checks that an id from a link is a real MongoDB id (24 hex characters)
+ * before it is used in a query.
+ * @param {string} id - The id to check.
+ * @returns {boolean} True if the id can be used.
+ */
+function isValidId(id) {
+    return typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id);
+}
+
+/**
  * Validates user credentials by email.
  * @param {string} email - The email of the user to validate.
  * @returns {Promise} Resolves with user data or false if not found.
@@ -389,6 +399,7 @@ async function getQueuesWithCountsOut() {
 module.exports = {
     dbName,
     connectDB,
+    isValidId,
     validateCredentials,
     createRegistration,
     updateApproval,
