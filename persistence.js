@@ -19,6 +19,17 @@ async function connectDB() {
 }
 
 /**
+ * Creates the database indexes the app relies on. Safe to run on every start
+ * (MongoDB does nothing if the index already exists).
+ * The unique index makes it impossible to have two accounts with the same email.
+ * @returns {Promise} Resolves once the indexes exist.
+ */
+async function createIndexes() {
+    const db = await connectDB();
+    await db.collection('users').createIndex({ email: 1 }, { unique: true });
+}
+
+/**
  * Checks that an id from a link is a real MongoDB id (24 hex characters)
  * before it is used in a query.
  * @param {string} id - The id to check.
@@ -307,6 +318,7 @@ async function getQueuesWithCountsOut() {
 module.exports = {
     dbName,
     connectDB,
+    createIndexes,
     isValidId,
     createRegistration,
     getUserByEmail,

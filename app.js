@@ -650,6 +650,13 @@ app.use((err, req, res, next) => {
 });
 
 /**
- * Start server on configured port
+ * Create the database indexes, then start the server on the configured port
  */
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+persistence.createIndexes()
+    .then(() => {
+        app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+    })
+    .catch((err) => {
+        console.error("Could not prepare the database (is MongoDB running? are there duplicate emails?):", err.message);
+        process.exit(1);
+    });
