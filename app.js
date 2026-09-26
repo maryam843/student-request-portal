@@ -173,6 +173,27 @@ hbs.registerHelper('eq', function (a, b) {
     return a === b;
 });
 
+// Picture shown for users without a profile photo (and when a photo file is missing)
+const DEFAULT_AVATAR = '/img/avatar-default.svg';
+
+/**
+ * Profile picture address: the uploaded photo, or the default avatar
+ */
+hbs.registerHelper('avatarSrc', function (profilePic) {
+    return profilePic ? '/uploads/' + profilePic : DEFAULT_AVATAR;
+});
+
+/**
+ * An <img> with the profile picture that switches to the default avatar if the photo cannot be loaded
+ */
+hbs.registerHelper('avatar', function (profilePic, cssClass, size) {
+    const src = profilePic ? '/uploads/' + profilePic : DEFAULT_AVATAR;
+    const sizeAttrs = typeof size === 'number' ? ` width="${size}" height="${size}"` : '';
+    return new hbs.SafeString(
+        `<img class="${hbs.Utils.escapeExpression(typeof cssClass === 'string' ? cssClass : '')}" src="${hbs.Utils.escapeExpression(src)}"${sizeAttrs} alt="Profile picture" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR}'">`
+    );
+});
+
 hbs.registerHelper('formatDate', function(date) {
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
     return new Date(date).toLocaleDateString('en-US', options);

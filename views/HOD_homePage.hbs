@@ -92,11 +92,7 @@
     <nav class="sidebar">
       <h3 class="text-center">HOD Dashboard</h3>
       <div class="avatar avatar-md">
-        {{#if profilePic}}
-        <img class="avatar-img" src="/uploads/{{profilePic}}" alt="Profile picture">
-        {{else}}
-        <img class="avatar-img" src="/img/icons/profile.png" alt="No profile picture">
-        {{/if}}
+        {{avatar profilePic "avatar-img"}}
       </div>
       <a  href="/hod-requests">Student Requests</a>
       <a  href="/hod/random">I don't know where to begin!</a>

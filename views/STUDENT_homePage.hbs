@@ -114,11 +114,7 @@
           <li class="nav-item dropdown"><a class="nav-link py-0" data-coreui-toggle="dropdown" href="#" role="button"
               aria-haspopup="true" aria-expanded="false">
               <div class="avatar avatar-md">
-                {{#if profilePic}}
-                <img class="avatar-img" src="/uploads/{{profilePic}}" alt="Profile picture">
-                {{else}}
-                <img class="avatar-img" src="/img/icons/profile.png" alt="No profile picture">
-                {{/if}}
+                {{avatar profilePic "avatar-img"}}
               </div>
             </a>
             <div class="dropdown-menu dropdown-menu-end pt-0">
