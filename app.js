@@ -527,8 +527,7 @@ app.get("/hod/queue/:category", requireRole("department_head"), async (req, res)
         }
     }
 
-    const queues = await persistence.getQueuesWithCounts({});
-    res.render("hod-queue", { category, requests, queues });
+    res.render("hod-queue", { category, requests });
 });
 
 /**
