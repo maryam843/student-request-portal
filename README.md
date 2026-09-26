@@ -1,69 +1,47 @@
 # Student Request Portal
 
-A web app where students send requests (course advice, attendance, registration, major change) to their Head of Department, who reviews them in category queues and approves or rejects them.
+This is a web app I built for INFS 3201 – Web Technologies 2 at UDST in 2025. Students send requests (course advice, attendance, registration or major change) to their Head of Department, who reviews them in queues and approves or rejects them. In 2026 I went back to it to fix security problems and clean up the code.
 
-## Screenshots
+## Demo
 
-| Login | Student dashboard |
+<!-- demo video goes here -->
+
+| Student dashboard | Head of Department dashboard |
 |---|---|
-| ![Login](docs/screenshots/1-login.png) | ![Student dashboard](docs/screenshots/2-student-dashboard.png) |
-
-| New request | My requests |
-|---|---|
-| ![New request](docs/screenshots/3-new-request.png) | ![My requests](docs/screenshots/4-my-requests.png) |
-
-| HoD dashboard | HoD request list |
-|---|---|
-| ![HoD dashboard](docs/screenshots/5-hod-dashboard.png) | ![HoD request list](docs/screenshots/6-hod-requests.png) |
-
-| HoD decision |
-|---|
-| ![HoD decision](docs/screenshots/7-hod-decision.png) |
+| ![Student dashboard](docs/screenshots/student-dashboard.png) | ![Head of Department dashboard](docs/screenshots/hod-dashboard.png) |
 
 ## Features
 
-### Student
-- Register a student account with a profile picture, then verify the email with a link (demo: the link is printed in the server console, no real email is sent)
-- Log in and log out
-- Submit a request with a semester, category and description; each request gets an estimated completion time
-- See all own requests, open one to read the Head of Department's note, and cancel requests that are still pending
-- A badge on the dashboard shows how many requests have a new decision that has not been opened yet
-- Profile page with the account details and a form to change the profile picture
-- Forgot / reset password (demo: the reset link is printed in the server console)
+Student:
+- Register, verify the email and log in (the verification link is printed in the server console)
+- Submit a request. It gets an estimated completion time: 15 minutes for every request already waiting in the same category, counted only from 9am to 5pm, Sunday to Thursday
+- See my requests, open one to read the Head of Department's note, and cancel requests that are still pending
+- A badge shows decisions I have not opened yet
+- Profile page where I can change my picture
+- Forgot / reset password (the reset link is printed in the server console)
 
-### Head of Department
+Head of Department:
 - Dashboard with the number of pending, approved and rejected requests
 - List of all requests, with filters by category and semester
-- Queue summary per category (pending out of total), built with a MongoDB aggregation
-- Queue page per category, oldest request first
-- "I don't know where to begin!" opens a random pending request
-- Approve or reject a pending request with a note
+- A queue for each category, and a button that picks a random pending request
+- Approve or reject a request with a note
 
 ## Tech stack
-- Node.js and Express
-- MongoDB (official `mongodb` driver)
-- Handlebars views (`hbs`)
-- CoreUI 4 admin template (Bootstrap 5)
-- express-session + connect-mongo for login sessions, bcrypt for passwords, Multer for uploads
 
-The code is split into three files: `app.js` (routes), `business.js` (logic) and `persistence.js` (database).
+Node.js, Express, MongoDB, Handlebars and the CoreUI 4 admin template (Bootstrap 5). I also use express-session for logins, bcrypt for passwords, Multer for uploads and express-rate-limit. The code is in three files: `app.js` (routes), `business.js` (logic) and `persistence.js` (database).
 
 ## How to run
 
-You need Node.js 18 or newer and a MongoDB server running locally.
+You only need Node.js 18 or newer.
 
 ```bash
-cp .env.example .env      # then set SESSION_SECRET to a long random string
 npm install
-npm run seed              # WARNING: deletes all users, requests and sessions in that database
-npm start                 # or: npm run dev (restarts on file changes)
+npm run demo
 ```
 
-Open http://localhost:8000.
+Then open http://localhost:8000. `npm run demo` starts a temporary MongoDB in memory, adds demo data and starts the app, so you do not need to install MongoDB or create a `.env` file. The first time, it downloads MongoDB, so it needs an internet connection and can take a minute. Press Ctrl+C to stop it; the demo data is deleted.
 
-## Demo logins
-
-Created by `npm run seed`. The password for all of them is `Demo@1234`.
+Demo logins (the password for all of them is `Demo@1234`):
 
 | Role | Email |
 |---|---|
@@ -72,28 +50,29 @@ Created by `npm run seed`. The password for all of them is `Demo@1234`.
 | Student | omar@example.com |
 | Student | lina@example.com |
 
-New accounts made on the register page are always students.
+To use your own MongoDB instead: copy `.env.example` to `.env`, fill it in, then run `npm run seed` (this deletes the users and requests in that database) and `npm start`.
 
-## How the ETA works
+## What I fixed in 2026
 
-When a student submits a request, the app counts the pending requests in the same category and allows 15 minutes for each one. It then counts those minutes forward from the submission time, but only inside working hours: 9am to 5pm, Sunday to Thursday (Friday and Saturday are the Qatar weekend). A request sent outside working hours starts counting at the next working time. The server's local time is used.
-
-## Security fixes made in 2026
-- The database connection string was hard-coded in the source; it now comes from a `.env` file that is not committed
-- Only the `public/` folder is served, so the server code can no longer be downloaded
-- Real login sessions instead of `?email=` in the URL, plus a check on every page: students can only see and cancel their own requests, and Head of Department pages are only for the Head of Department
-- Registration always creates a student account (before, anyone could choose "Department Head")
-- Real logout that deletes the session
+- Moved the database password out of the code into a `.env` file and removed it from the git history
+- The server now only shares the `public/` folder, not the whole project
+- Real login sessions and a role check on every page, instead of the email in the URL
+- New accounts are always students
 - Passwords are hashed with bcrypt instead of SHA-256
-- Uploads: only JPG, PNG, GIF or WEBP images up to 2 MB, saved under a random name
-- The password reset token is no longer inserted raw into HTML
-- Form and URL values must be plain text, so tricks like `?email[$ne]=` do not reach MongoDB
-- IDs are checked before use and errors show an error page instead of crashing the server
+- Uploads: only images, up to 2 MB
+- Form and URL values must be plain text, and a bad link shows an error page instead of crashing the server
+- Login, register and forgot password are limited to 10 tries per 15 minutes
+- A unique index on the user email in MongoDB
+- Fixed the password reset, the login messages, broken HTML and the made-up numbers on the Head of Department dashboard
+- Removed personal fields I did not need (date of birth, ID, nationality, address, phone) and the unused template pages and code
 
 ## Limitations
-- Emails are not sent; verification and reset links are printed in the server console
-- No automated tests; the app was checked by hand
-- No rate limiting on login and no CSRF tokens (the session cookie uses `SameSite=Lax`)
+
+- No real emails are sent; the links are printed in the server console
+- No automated tests; I tested it by hand
+- No CSRF tokens (the login cookie uses `SameSite=Lax`)
+- Times use the server's local time
 
 ## Credits
+
 Built for INFS 3201 – Web Technologies 2 at UDST (Winter 2025) on the CoreUI 4 admin template (MIT). Security fixes and bug fixes added in 2026.
