@@ -26,7 +26,7 @@
             <div class="card col-md-7 p-4 mb-0">
               <div class="card-body">
                 <h1>Login</h1>
-                <p class="text-medium-emphasis">Sign In to your account</p>
+                <p class="text-medium-emphasis">Log in to your account</p>
                 {{#if error}}<div class="alert alert-danger">{{error}}</div>{{/if}}
                 {{#if msg}}<div class="alert alert-success">{{msg}}</div>{{/if}}
                 <form action="/login" method="POST">
@@ -53,7 +53,7 @@
                     <div class="col-6 text-end">
                       <a href="/register" class="btn btn-primary">Register</a>
                     </div>
-                    <a href="/forgot-password">Forgot your password? Click here to reset your password</a>
+                    <a href="/forgot-password">Forgot your password?</a>
                   </div>
                 </form>
               </div>
@@ -61,12 +61,11 @@
             <div class="card col-md-5 text-white bg-primary py-5">
               <div class="card-body text-center">
                 <div>
-                  <h2>Sign Up!</h2>
-                  <p>STUDENT can sign up, verify their email, and log in to submit course-related requests, which are
-                    placed in categorized queues. </p>
-                  <p>The HOD can log in to view and manage pending requests, sorting them by category and priority. </p>
-                  <p> Register your account, if you do not have One!</p>
-                  <h6>Enjoyy!</h6>
+                  <h2>Student Request Portal</h2>
+                  <p>Students register, verify their email and log in to send requests to their Head of Department.
+                    Each request goes into the queue for its category.</p>
+                  <p>The Head of Department reviews the queues and approves or rejects each request.</p>
+                  <p>No account yet? Use Register.</p>
                 </div>
               </div>
             </div>

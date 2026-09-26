@@ -31,7 +31,7 @@
                       <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-user"></use>
                     </svg>
                   </span>
-                  <input class="form-control" type="text" name="name" placeholder="Username" required>
+                  <input class="form-control" type="text" name="name" placeholder="Name" value="{{form.name}}" required>
                 </div>
 
                 <div class="input-group mb-3">
@@ -40,31 +40,32 @@
                       <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-envelope-open"></use>
                     </svg>
                   </span>
-                  <input class="form-control" type="email" name="email" placeholder="Email" required>
+                  <input class="form-control" type="email" name="email" placeholder="Email" value="{{form.email}}" required>
                 </div>
 
                 <div class="input-group mb-3">
                   <span class="input-group-text">
-                      <img src="/img/icons/college.jpeg" alt="Account Icon" width="20"
+                      <img src="/img/icons/college.jpeg" alt="" width="20"
                           height="20">
                   </span>
                   <select class="form-control" name="college" required>
-                      <option value="" disabled selected hidden>Select College</option>
-                      <option value="Business">Business</option>
-                      <option value="IT">Computing and IT</option>
-                      <option value="Engineering">Engineering</option>
-                      <option value="General Education">General Education</option>
-                      <option value="Health">Health Science</option>
+                      <option value="" disabled {{#unless form.college}}selected{{/unless}} hidden>Select a college</option>
+                      <option value="Business" {{#if (eq form.college "Business")}}selected{{/if}}>Business</option>
+                      <option value="IT" {{#if (eq form.college "IT")}}selected{{/if}}>Computing and IT</option>
+                      <option value="Engineering" {{#if (eq form.college "Engineering")}}selected{{/if}}>Engineering</option>
+                      <option value="General Education" {{#if (eq form.college "General Education")}}selected{{/if}}>General Education</option>
+                      <option value="Health" {{#if (eq form.college "Health")}}selected{{/if}}>Health Science</option>
                   </select>
               </div>
 
               <div class="input-group mb-3">
                   <span class="input-group-text">
-                      <img src="/img/icons/profile.png" alt="Upload Pic" width="20"
+                      <img src="/img/icons/profile.png" alt="" width="20"
                           height="20">
                   </span>
-                  <input class="form-control" type="file" name="profilePic" accept="image/jpeg,image/png,image/gif,image/webp" required>
+                  <input class="form-control" type="file" name="profilePic" aria-label="Profile picture (optional)" accept="image/jpeg,image/png,image/gif,image/webp">
               </div>
+              <div class="form-text mb-3">Profile picture is optional (JPG, PNG, GIF or WEBP, max 2 MB).</div>
 
                 <div class="input-group mb-3">
                   <span class="input-group-text">
@@ -85,7 +86,7 @@
                     required>
                 </div>
                 <button class="btn btn-primary px-4" type="submit">Create Account</button>
-<!-- <a href="/home" class="btn btn-primary px-4"> Continue to Homepage </a> -->
+                <a href="/login" class="btn btn-link">Back to Login</a>
               </form>
             </div>
           </div>

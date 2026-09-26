@@ -1,0 +1,77 @@
+/* Styles shared by all pages, on top of the CoreUI styles in style.css */
+
+.sidebar-brand {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sidebar-brand:hover {
+  color: #fff;
+}
+
+/* Logout is a form button, styled like the other menu links */
+.sidebar-nav form {
+  margin: 0;
+}
+
+.sidebar-nav button.nav-link {
+  width: 100%;
+  background: none;
+  border: 0;
+  text-align: left;
+}
+
+.header-brand {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  text-decoration: none;
+}
+
+.avatar-img,
+.avatar-sm,
+.profile-photo {
+  object-fit: cover;
+}
+
+.avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.stat-number {
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.row-cancelled td {
+  color: #8a93a2;
+}
+
+.details dt {
+  font-weight: 600;
+}
+
+.details dd {
+  margin-bottom: 0.75rem;
+}
+
+.description {
+  white-space: pre-wrap;
+}

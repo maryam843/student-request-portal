@@ -87,12 +87,12 @@ async function generateResetToken(email) {
  */
 async function resetPassword(token, newPassword, repeatPassword) {
     if (!newPassword || newPassword !== repeatPassword) {
-        return { success: false, message: "Passwords do not match or are empty." };
+        return { success: false, message: "The passwords do not match." };
     }
 
     const user = await persistence.getUserByResetToken(token);
     if (!user) {
-        return { success: false, message: "Invalid or expired reset token." };
+        return { success: false, message: "Invalid or expired reset link. Please request a new one." };
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
@@ -133,7 +133,7 @@ function moveToNextWorkingStart(date) {
 
 /**
  * Calculates estimated request completion time based on queue size and working hours
- * (9am–5pm, Sunday to Thursday). Each request already in the queue adds baseMinutes.
+ * (9am-5pm, Sunday to Thursday). Each request already in the queue adds baseMinutes.
  * Uses the server's local time.
  */
 function calculateEstimatedCompletionTime(countInQueue, baseMinutes = 15, now = new Date()) {

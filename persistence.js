@@ -234,15 +234,13 @@ async function getRandomPendingRequest() {
 }
 
 /**
- * Fetches requests by student email.
+ * Fetches requests by student email, newest first.
  * @param {string} email - The email of the student.
  * @returns {Promise} Resolves with an array of requests.
  */
 async function getRequestsByEmail(email) {
     const db = await connectDB();
-    const collection = db.collection('requests');
-    const requests = await collection.find({ studentEmail: email }).toArray();
-    return requests;
+    return await db.collection('requests').find({ studentEmail: email }).sort({ timestamp: -1 }).toArray();
 }
 
 /**
@@ -257,13 +255,37 @@ async function getStudentNameByEmail(email) {
 }
 
 /**
- * Fetches requests with a filter.
+ * Fetches requests with a filter, newest first (without a sort MongoDB returns them
+ * in insertion order, so a new request ended up below all the older ones).
  * @param {Object} filter - The filter to apply to the requests.
  * @returns {Promise} Resolves with an array of requests.
  */
 async function getRequests(filter = {}) {
     const db = await connectDB();
-    return await db.collection("requests").find(filter).toArray();
+    return await db.collection("requests").find(filter).sort({ timestamp: -1 }).toArray();
+}
+
+/**
+ * Counts the decisions (Approved/Rejected) a student has not opened yet, for the badge.
+ * @param {string} email - The email of the student.
+ * @returns {Promise} Resolves with the number of unread decisions.
+ */
+async function countUnreadDecisions(email) {
+    const db = await connectDB();
+    return await db.collection("requests").countDocuments({ studentEmail: email, studentNotified: false });
+}
+
+/**
+ * Fetches the profile picture file names of several users, e.g. { "sara@example.com": "123.png" }.
+ * @param {string[]} emails - The emails of the users.
+ * @returns {Promise} Resolves with an object from email to picture (users without one are left out).
+ */
+async function getProfilePicsByEmails(emails) {
+    const db = await connectDB();
+    const users = await db.collection("users")
+        .find({ email: { $in: emails }, profilePic: { $nin: [null, ""] } }, { projection: { email: 1, profilePic: 1 } })
+        .toArray();
+    return Object.fromEntries(users.map(u => [u.email, u.profilePic]));
 }
 
 /**
@@ -338,6 +360,8 @@ module.exports = {
     getRequestsByEmail,
     getStudentNameByEmail,
     markRequestAsNotified,
+    countUnreadDecisions,
+    getProfilePicsByEmails,
     getQueuesWithCountsOut,
     getStatusCounts
 };

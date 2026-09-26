@@ -1,127 +1,50 @@
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<style>
-  :root {
-    --primary-color: #872fc5;
-    --secondary-color: #500187;
-    --hover-color: #5936a0;
-    --light-bg: #cbbae5;
-    font-family: 'Anton', sans-serif;
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex align-items-center mb-3">
+      {{avatar studentPic "rounded-circle profile-photo me-3" 48}}
+      <div>
+        <div class="fw-semibold">{{request.studentName}}</div>
+        <div class="text-medium-emphasis">{{request.studentEmail}}</div>
+      </div>
+    </div>
+    <dl class="details">
+      <dt>Semester</dt>
+      <dd>{{request.semester}}</dd>
+      <dt>Category</dt>
+      <dd>{{request.category}}</dd>
+      <dt>Status</dt>
+      <dd><span class="badge {{statusClass request.status}}">{{request.status}}</span></dd>
+      <dt>Description</dt>
+      <dd class="description">{{request.description}}</dd>
+      <dt>Submitted</dt>
+      <dd>{{formatDate request.timestamp}}</dd>
+      {{#if (eq request.status "Pending")}}
+      <dt>Estimated completion</dt>
+      <dd>{{formatDate request.estimatedCompletion}}</dd>
+      {{else}}
+      <dt>Note from HoD</dt>
+      <dd>{{#if request.note}}{{request.note}}{{else}}No note.{{/if}}</dd>
+      {{/if}}
+    </dl>
 
-  }
-
-  body {
-    background-color: var(--light-bg);
-    font-family: var(--font);
-    padding:20px;
-  }
-
-  h1, h2 {
-    color: white;
-    background-color: var(--primary-color);
-    padding: 10px 15px;
-    border-radius: 10px;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0 auto;
-    width: 60%;
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 0 10px rgba(80, 1, 135, 0.2);
-  }
-
-  li {
-    margin: 10px 0;
-    font-size: 18px;
-    color: #333;
-  }
-
-  li a {
-    margin-left: 10px;
-    background-color: var(--secondary-color);
-    color: white;
-    padding: 6px 10px;
-    text-decoration: none;
-    border-radius: 6px;
-  }
-
-  li a:hover {
-    background-color: var(--hover-color);
-  }
-
-  .request-form {
-    background-color: white;
-    padding: 25px;
-    margin: 0 auto;
-    border-radius: 12px;
-    box-shadow: 0 0 10px rgba(80, 1, 135, 0.3);
-    width: 60%;
-  }
-
-  .request-form label {
-    display: block;
-    font-weight: bold;
-    margin-top: 10px;
-    color: #333;
-  }
-
-  .request-form select,
-  .request-form textarea {
-    width: 100%;
-    padding: 8px;
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-  }
-
-  .request-form button {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 10px 18px;
-    border: none;
-    border-radius: 6px;
-    margin-top: 15px;
-    cursor: pointer;
-    text-align: center;
-  }
-
-  .request-form button:hover {
-    background-color: var(--hover-color);
-  }
-</style>
-
-<!-- hod-request.hbs -->
-<div class="request-form">
-<h1>Request Details</h1>
-<p><strong>Student:</strong> {{request.studentName}}</p>
-<p><strong>Category:</strong> {{request.category}}</p>
-<p><strong>Description:</strong> {{request.description}}</p>
-<p><strong>Status:</strong> {{request.status}}</p>
-<p><strong>Submitted:</strong> {{formatDate request.timestamp}}</p>
-<p><strong>Estimated Completion:</strong> {{formatDate request.estimatedCompletion}}</p>
-
-<!-- Form for processing the request (only while it is still pending) -->
-{{#if (eq request.status "Pending")}}
-<form action="/hod/request/{{request._id}}" method="POST">
-    <label for="status">Change Status</label>
-    <select name="status" id="status" required>
-        <option value="Approved">Approved</option>
-        <option value="Rejected">Rejected</option>
-    </select>
-    <label for="note">Note:</label>
-    <textarea name="note" id="note" rows="4" placeholder="Optional note..."></textarea>
-    <button type="submit">Process Request</button>
-</form>
-{{else}}
-<p><strong>Note:</strong> {{#if request.note}}{{request.note}}{{else}}—{{/if}}</p>
-<p><em>This request is {{request.status}} and cannot be changed.</em></p>
-{{/if}}
-<p><a href="/hod-requests">⬅️ Back to Student Requests</a></p>
-
+    {{#if (eq request.status "Pending")}}
+    <form action="/hod/request/{{request._id}}" method="POST">
+      <div class="mb-3">
+        <label for="status" class="form-label">Decision</label>
+        <select name="status" id="status" class="form-select" required>
+          <option value="">Select a decision</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="note" class="form-label">Note to the student (optional)</label>
+        <textarea name="note" id="note" class="form-control" rows="4"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Process Request</button>
+    </form>
+    {{else}}
+    <p class="mb-0 text-medium-emphasis">This request is {{request.status}} and cannot be changed.</p>
+    {{/if}}
+  </div>
 </div>
-
