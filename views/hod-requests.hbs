@@ -384,13 +384,14 @@
                 <td>{{this.studentName}}</td>
                 <td>{{this.category}}</td>
                 <td>{{this.semester}}</td>
+                <td>{{this.description}}</td>
                 <td>{{this.status}}</td>
                 <td>{{formatDate this.timestamp}}</td>
                 <td><a href="/hod/view/{{this._id}}" class="btn-view">View</a></td>
             </tr>
             {{else}}
             <tr>
-                <td colspan="6">No requests found.</td>
+                <td colspan="7">No requests found.</td>
             </tr>
             {{/each}}
         </tbody>

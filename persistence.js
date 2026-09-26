@@ -234,15 +234,13 @@ async function getRandomPendingRequest() {
 }
 
 /**
- * Fetches requests by student email.
+ * Fetches requests by student email, newest first.
  * @param {string} email - The email of the student.
  * @returns {Promise} Resolves with an array of requests.
  */
 async function getRequestsByEmail(email) {
     const db = await connectDB();
-    const collection = db.collection('requests');
-    const requests = await collection.find({ studentEmail: email }).toArray();
-    return requests;
+    return await db.collection('requests').find({ studentEmail: email }).sort({ timestamp: -1 }).toArray();
 }
 
 /**
@@ -257,13 +255,14 @@ async function getStudentNameByEmail(email) {
 }
 
 /**
- * Fetches requests with a filter.
+ * Fetches requests with a filter, newest first (without a sort MongoDB returns them
+ * in insertion order, so a new request ended up below all the older ones).
  * @param {Object} filter - The filter to apply to the requests.
  * @returns {Promise} Resolves with an array of requests.
  */
 async function getRequests(filter = {}) {
     const db = await connectDB();
-    return await db.collection("requests").find(filter).toArray();
+    return await db.collection("requests").find(filter).sort({ timestamp: -1 }).toArray();
 }
 
 /**
