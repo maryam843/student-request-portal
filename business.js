@@ -113,20 +113,29 @@ async function getUserByEmail(email) {
     return await persistence.getUserByEmail(email);
 }
 
+// Qatar weekend: Friday (5) and Saturday (6) in JavaScript's getDay()
+const WEEKEND_DAYS = [5, 6];
+
 /**
- * Calculates estimated request completion time based on queue size and working hours (9am–5pm).
+ * Calculates estimated request completion time based on queue size and working hours
+ * (9am–5pm, Sunday to Thursday). Each request already in the queue adds baseMinutes.
+ * Uses the server's local time.
  */
-function calculateEstimatedCompletionTime(countInQueue, baseMinutes = 15) {
-    const now = new Date();
+function calculateEstimatedCompletionTime(countInQueue, baseMinutes = 15, now = new Date()) {
     let minutesToAdd = countInQueue * baseMinutes;
     let estimated = new Date(now.getTime());
 
     while (minutesToAdd > 0) {
         let hour = estimated.getHours();
-        if (hour >= 9 && hour < 17) {
+        let isWeekend = WEEKEND_DAYS.includes(estimated.getDay());
+        if (!isWeekend && hour >= 9 && hour < 17) {
             estimated.setMinutes(estimated.getMinutes() + 1);
             minutesToAdd--;
+        } else if (!isWeekend && hour < 9) {
+            // before 9am on a working day: start at 9am the same day
+            estimated.setHours(9, 0, 0, 0);
         } else {
+            // after 5pm or on the weekend: try 9am the next day
             estimated.setHours(9, 0, 0, 0);
             estimated.setDate(estimated.getDate() + 1);
         }
