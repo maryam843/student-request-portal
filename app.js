@@ -55,11 +55,27 @@ function text(value) {
 }
 
 /**
+ * The dashboard address for a logged-in user's account type
+ */
+function dashboardFor(user) {
+    return user.accountType === "department_head" ? "/admin-dashboard" : "/student-dashboard";
+}
+
+/**
+ * Pages for logged-in users must not be kept in the browser cache, otherwise the
+ * Back button shows them again after logout (and can show an old list)
+ */
+function noCache(res) {
+    res.set('Cache-Control', 'no-store');
+}
+
+/**
  * Only let logged-in users through; everybody else goes to the login page
  */
 function requireLogin(req, res, next) {
+    noCache(res);
     if (!req.session.user) {
-        return res.redirect("/login?error=Please login first.");
+        return res.redirect("/login?error=Please log in first.");
     }
     next();
 }
@@ -69,8 +85,9 @@ function requireLogin(req, res, next) {
  */
 function requireRole(accountType) {
     return function (req, res, next) {
+        noCache(res);
         if (!req.session.user) {
-            return res.redirect("/login?error=Please login first.");
+            return res.redirect("/login?error=Please log in first.");
         }
         if (req.session.user.accountType !== accountType) {
             return res.status(403).render("error", { message: "You are not allowed to open this page." });
@@ -180,8 +197,7 @@ app.get('/profile', requireLogin, async (req, res) => {
     const user = await business.getUserByEmail(req.session.user.email);
     if (!user) return res.redirect("/login?error=User not found.");
 
-    const dashboard = user.accountType === "department_head" ? "/admin-dashboard" : "/student-dashboard";
-    res.render('profile', { user, dashboard, error: text(req.query.error), msg: text(req.query.msg) });
+    res.render('profile', { user, dashboard: dashboardFor(user), error: text(req.query.error), msg: text(req.query.msg) });
 });
 
 /**
@@ -454,9 +470,12 @@ app.get("/register", (req, res) => {
 });
 
 /**
- * Serve the login page (root or /login route)
+ * Serve the login page (root or /login route); a logged-in user goes to their dashboard
  */
 app.get(["/", "/login"], (req, res) => {
+    if (req.session.user) {
+        return res.redirect(dashboardFor(req.session.user));
+    }
     res.render("login", { error: text(req.query.error), msg: text(req.query.msg) });
 });
 
