@@ -64,7 +64,7 @@ async function seed() {
             description,
             status,
             timestamp,
-            estimatedCompletion: business.calculateEstimatedCompletionTime(count)
+            estimatedCompletion: business.calculateEstimatedCompletionTime(count, 15, timestamp)
         };
         if (status === 'Pending') {
             pendingPerCategory[category] = count + 1;

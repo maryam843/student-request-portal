@@ -117,6 +117,26 @@ async function getUserByEmail(email) {
 const WEEKEND_DAYS = [5, 6];
 
 /**
+ * True between 9am and 5pm, Sunday to Thursday.
+ */
+function isWorkingTime(date) {
+    const hour = date.getHours();
+    return !WEEKEND_DAYS.includes(date.getDay()) && hour >= 9 && hour < 17;
+}
+
+/**
+ * Moves the date to the next 9am (the same day if it is a working day before 9am).
+ */
+function moveToNextWorkingStart(date) {
+    if (!WEEKEND_DAYS.includes(date.getDay()) && date.getHours() < 9) {
+        date.setHours(9, 0, 0, 0);
+    } else {
+        date.setHours(9, 0, 0, 0);
+        date.setDate(date.getDate() + 1);
+    }
+}
+
+/**
  * Calculates estimated request completion time based on queue size and working hours
  * (9am–5pm, Sunday to Thursday). Each request already in the queue adds baseMinutes.
  * Uses the server's local time.
@@ -125,19 +145,17 @@ function calculateEstimatedCompletionTime(countInQueue, baseMinutes = 15, now = 
     let minutesToAdd = countInQueue * baseMinutes;
     let estimated = new Date(now.getTime());
 
+    // a request sent outside working hours waits until the next working time
+    while (!isWorkingTime(estimated)) {
+        moveToNextWorkingStart(estimated);
+    }
+
     while (minutesToAdd > 0) {
-        let hour = estimated.getHours();
-        let isWeekend = WEEKEND_DAYS.includes(estimated.getDay());
-        if (!isWeekend && hour >= 9 && hour < 17) {
+        if (isWorkingTime(estimated)) {
             estimated.setMinutes(estimated.getMinutes() + 1);
             minutesToAdd--;
-        } else if (!isWeekend && hour < 9) {
-            // before 9am on a working day: start at 9am the same day
-            estimated.setHours(9, 0, 0, 0);
         } else {
-            // after 5pm or on the weekend: try 9am the next day
-            estimated.setHours(9, 0, 0, 0);
-            estimated.setDate(estimated.getDate() + 1);
+            moveToNextWorkingStart(estimated);
         }
     }
 
