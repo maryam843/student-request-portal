@@ -89,14 +89,47 @@ const storage = multer.diskStorage({
         cb(null, path.join(__dirname, 'uploads'));
     },
     /**
-     * Rename uploaded file with timestamp prefix
+     * Rename uploaded file to a timestamp + random name (the original name is not used)
      */
     filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
+        const extension = ALLOWED_IMAGES[file.mimetype];
+        cb(null, Date.now() + '-' + crypto.randomBytes(8).toString('hex') + extension);
     }
 });
 
-const upload = multer({ storage: storage });
+// Only these image types are accepted (no SVG/HTML, which could contain scripts)
+const ALLOWED_IMAGES = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/gif': '.gif',
+    'image/webp': '.webp'
+};
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+    fileFilter: function (req, file, cb) {
+        const extension = path.extname(file.originalname).toLowerCase();
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        if (ALLOWED_IMAGES[file.mimetype] && allowedExtensions.includes(extension)) {
+            cb(null, true);
+        } else {
+            cb(new Error("Only JPG, PNG, GIF or WEBP images are allowed."));
+        }
+    }
+});
+
+/**
+ * Run the upload and keep the error message (too big, wrong type) instead of crashing
+ */
+function uploadProfilePic(req, res, next) {
+    upload.single('profilePic')(req, res, (err) => {
+        if (err) {
+            req.uploadError = err.code === 'LIMIT_FILE_SIZE' ? "The picture must be 2 MB or smaller." : err.message;
+        }
+        next();
+    });
+}
 
 // Handlebars Helpers
 hbs.registerHelper('eq', function (a, b) {
@@ -123,7 +156,7 @@ function logEmailDetails(to, verificationLink) {
 /**
  * Handle profile picture upload request
  */
-app.post('/upload-profile', upload.single('profilePic'), async (req, res) => {
+app.post('/upload-profile', uploadProfilePic, async (req, res) => {
     try {
         const profilePicPath = req.file ? `/uploads/${req.file.filename}` : null;
         res.render('success', { imagePath: profilePicPath });
@@ -137,11 +170,20 @@ app.post('/upload-profile', upload.single('profilePic'), async (req, res) => {
 /**
  * Handle user registration
  */
-app.post('/register', upload.single('profilePic'), async (req, res) => {
+app.post('/register', uploadProfilePic, async (req, res) => {
     const { name, email, password, confirmPassword, college, dob, ID, nationality, address, phone } = req.body;
     const profilePic = req.file ? req.file.filename : null;
 
     try {
+        if (req.uploadError) {
+            return res.send(`
+                <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
+                    Error: ${req.uploadError}
+                </div>
+                <a href="/register">Go back to Register</a>
+            `);
+        }
+
         if (!email || !password || !name) {
             return res.send(`
                 <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
