@@ -107,6 +107,18 @@
     font-weight: bold;
   }
 
+  .view-link {
+    font-weight: bold;
+    margin-right: 8px;
+  }
+
+  .new-badge {
+    background-color: #e55353;
+    color: white;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 0.8em;
+  }
 </style>
 
 <h1>My Requests</h1>
@@ -142,14 +154,14 @@
       {{formatDate estimatedCompletion}}
     </td>
 <td class="{{#if (eq status "Cancelled")}}cancelled-cell{{else if (eq status "Pending")}}pending-cell{{/if}}">
+      <a href="/student/request/{{_id}}" class="view-link">View</a>
+      {{#if (eq studentNotified false)}}<span class="new-badge">New update</span>{{/if}}
       {{#if (eq status "Pending")}}
       <div class="cancel-btn-container">
         <form action="/student-cancel/{{_id}}" method="POST">
           <button type="submit">Cancel</button>
         </form>
       </div>
-      {{else}}
-      <em>—</em>
       {{/if}}
     </td>
   </tr>
