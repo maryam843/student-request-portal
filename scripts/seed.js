@@ -5,7 +5,7 @@
  * WARNING: this deletes all existing users, requests and sessions in the
  * database from MONGODB_URI. Only run it on a local/demo database.
  *
- * Usage: npm run seed
+ * Usage: npm run seed   (npm run demo also uses it)
  */
 require('dotenv').config();
 const bcrypt = require('bcrypt');
@@ -83,9 +83,14 @@ async function seed() {
     users.forEach(u => console.log(`  ${u.accountType.padEnd(15)} ${u.email}`));
 }
 
-seed()
-    .then(() => process.exit(0))
-    .catch(err => {
-        console.error('Seeding failed:', err.message);
-        process.exit(1);
-    });
+module.exports = { seed };
+
+// Run by itself with "npm run seed" (scripts/demo.js calls seed() instead)
+if (require.main === module) {
+    seed()
+        .then(() => process.exit(0))
+        .catch(err => {
+            console.error('Seeding failed:', err.message);
+            process.exit(1);
+        });
+}
