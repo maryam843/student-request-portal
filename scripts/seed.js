@@ -16,9 +16,9 @@ const DEMO_PASSWORD = 'Demo@1234';
 
 const users = [
     { username: 'Dr. Demo HoD', email: 'hod@example.com', accountType: 'department_head', college: 'IT' },
-    { username: 'Sara Demo', email: 'sara@example.com', accountType: 'student', college: 'IT', ID: '1001' },
-    { username: 'Omar Demo', email: 'omar@example.com', accountType: 'student', college: 'Business', ID: '1002' },
-    { username: 'Lina Demo', email: 'lina@example.com', accountType: 'student', college: 'Engineering', ID: '1003' }
+    { username: 'Sara Demo', email: 'sara@example.com', accountType: 'student', college: 'IT' },
+    { username: 'Omar Demo', email: 'omar@example.com', accountType: 'student', college: 'Business' },
+    { username: 'Lina Demo', email: 'lina@example.com', accountType: 'student', college: 'Engineering' }
 ];
 
 // [student email, semester, category, description, status, note, days ago]

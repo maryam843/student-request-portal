@@ -181,8 +181,8 @@ app.post('/upload-profile', requireLogin, uploadProfilePic, async (req, res) => 
  * Handle user registration
  */
 app.post('/register', uploadProfilePic, async (req, res) => {
-    const [name, email, password, confirmPassword, college, dob, ID, nationality, address, phone] =
-        ['name', 'email', 'password', 'confirmPassword', 'college', 'dob', 'ID', 'nationality', 'address', 'phone'].map(field => text(req.body[field]));
+    const [name, email, password, confirmPassword, college] =
+        ['name', 'email', 'password', 'confirmPassword', 'college'].map(field => text(req.body[field]));
     const profilePic = req.file ? req.file.filename : null;
 
     try {
@@ -223,7 +223,7 @@ app.post('/register', uploadProfilePic, async (req, res) => {
             `);
         }
 
-        const userData = await business.registerUser(name, email, password, confirmPassword, college, dob, ID, nationality, address, phone, profilePic);
+        const userData = await business.registerUser(name, email, password, confirmPassword, college, profilePic);
 
         if (!userData) {
             return res.send(`

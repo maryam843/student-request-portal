@@ -10,7 +10,7 @@ const BCRYPT_ROUNDS = 10;
  * and generating a verification token. Stores the user in the database
  * and returns the verification link.
  */
-async function registerUser(username, email, password, repeatPassword, college, dob, ID, nationality, address, phone, profilePic) {
+async function registerUser(username, email, password, repeatPassword, college, profilePic) {
     if (!password || password !== repeatPassword) return false;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -32,11 +32,6 @@ async function registerUser(username, email, password, repeatPassword, college, 
             verified: false,
             verificationToken,
             college,
-            dob,
-            ID,
-            nationality,
-            address,
-            phone,
             profilePic
         };
 
