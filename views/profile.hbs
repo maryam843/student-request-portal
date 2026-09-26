@@ -2,11 +2,10 @@
 <html lang="en">
 
 <head>
-    <base href="./">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>CoreUI Free Bootstrap Admin Template</title>
+    <title>My Profile</title>
     <link rel="stylesheet" href="/vendors/simplebar/css/simplebar.css">
     <link rel="stylesheet" href="/css/vendors/simplebar.css">
     <link href="/css/style.css" rel="stylesheet">
@@ -20,89 +19,50 @@
                 <div class="col-md-6">
                     <div class="card mb-4 mx-4">
                         <div class="card-body p-4">
-                            <h1>Profile Setup</h1>
-                            <p class="text-medium-emphasis">Lets Finish setting up your profile</p>
-                            <form action="/register" method="POST">
+                            <h1>My Profile</h1>
+                            {{#if error}}<div class="alert alert-danger">{{error}}</div>{{/if}}
+                            {{#if msg}}<div class="alert alert-success">{{msg}}</div>{{/if}}
 
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/college.jpeg" alt="Account Icon" width="20"
-                                            height="20">
-                                    </span>
-                                    <select class="form-control" name="college" required>
-                                        <option value="" disabled selected hidden>Select College</option>
-                                        <option value="Business">Business</option>
-                                        <option value="IT">Computing and IT</option>
-                                        <option value="Engineering">Engineering</option>
-                                        <option value="General Education">General Education</option>
-                                        <option value="Health">Health Science</option>
-                                    </select>
-                                </div>
+                            <div class="text-center mb-3">
+                                {{#if user.profilePic}}
+                                <img src="/uploads/{{user.profilePic}}" alt="Profile picture" width="120" height="120"
+                                    class="rounded-circle" style="object-fit: cover;">
+                                {{else}}
+                                <img src="/img/icons/profile.png" alt="No profile picture" width="120" height="120">
+                                {{/if}}
+                                <h4 class="mt-2">{{user.username}}</h4>
+                                <p class="text-medium-emphasis">{{user.email}}</p>
+                            </div>
 
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/th.jpeg" alt="Account Icon" width="20"
-                                            height="20">
-                                    </span>
-                                    <select class="form-control" name="Degree" required>
-                                        <option value="" disabled selected hidden>Select Degree</option>
-                                        <option value="Bachelors">Bachelors</option>
-                                        <option value="Masters">Masters</option>
-                                        <option value="PhD">PhD</option>
-                                    </select>
-                                </div>
+                            <ul class="list-group mb-4">
+                                <li class="list-group-item">
+                                    <img src="/img/icons/college.jpeg" alt="" width="20" height="20" class="me-2">
+                                    <strong>College:</strong> {{#if user.college}}{{user.college}}{{else}}—{{/if}}
+                                </li>
+                                <li class="list-group-item">
+                                    <img src="/img/icons/dob.jpeg" alt="" width="20" height="20" class="me-2">
+                                    <strong>Date of birth:</strong> {{#if user.dob}}{{user.dob}}{{else}}—{{/if}}
+                                </li>
+                                <li class="list-group-item">
+                                    <img src="/img/icons/age.jpeg" alt="" width="20" height="20" class="me-2">
+                                    <strong>ID:</strong> {{#if user.ID}}{{user.ID}}{{else}}—{{/if}}
+                                </li>
+                                <li class="list-group-item">
+                                    <img src="/img/icons/nationality.jpeg" alt="" width="20" height="20" class="me-2">
+                                    <strong>Nationality:</strong> {{#if user.nationality}}{{user.nationality}}{{else}}—{{/if}}
+                                </li>
+                                <li class="list-group-item">
+                                    <img src="/img/icons/address.jpeg" alt="" width="20" height="20" class="me-2">
+                                    <strong>Address:</strong> {{#if user.address}}{{user.address}}{{else}}—{{/if}}
+                                </li>
+                                <li class="list-group-item">
+                                    <img src="/img/icons/phone.jpeg" alt="" width="20" height="20" class="me-2">
+                                    <strong>Phone:</strong> {{#if user.phone}}{{user.phone}}{{else}}—{{/if}}
+                                </li>
+                            </ul>
 
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/program.png" alt="Account Icon" width="20"
-                                            height="20">
-                                    </span>
-                                    <input class="form-control" type="text" name="Program" placeholder="Program"
-                                        required>
-                                </div>
-
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/dob.jpeg" alt="Account Icon" width="20"
-                                            height="20">
-                                    </span>
-                                    <input class="form-control" type="date" name="dob" placeholder="DOB" required>
-                                </div>
-
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/age.jpeg" alt="Account Icon" width="20"
-                                            height="20">
-                                    </span>
-                                    <input class="form-control" type="number" id="age" name="age" placeholder="Age"
-                                        min="0" max="100" required>
-                                </div>
-
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/nationality.jpeg" alt="Account Icon"
-                                            width="20" height="20">
-                                    </span>
-                                    <input class="form-control" type="text" name="Nationality" placeholder="Nationality"
-                                        required>
-                                </div>
-
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/address.jpeg" alt="Account Icon" width="20"
-                                            height="20">
-                                    </span>
-                                    <input class="form-control" type="text" name="Address" placeholder="Address"
-                                        required>
-                                </div>
-
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">
-                                        <img src="/img/icons/phone.jpeg" alt="Account Icon" width="20"
-                                            height="20">
-                                    </span>
-                                    <input class="form-control" type="tel" name="phone" placeholder="phone" required>
-                                </div>
+                            <form action="/upload-profile" method="POST" enctype="multipart/form-data">
+                                <label class="form-label">Change profile picture (JPG, PNG, GIF or WEBP, max 2 MB)</label>
                                 <div class="input-group mb-3">
                                     <span class="input-group-text">
                                         <img src="/img/icons/profile.png" alt="Upload Pic" width="20"
@@ -110,9 +70,8 @@
                                     </span>
                                     <input class="form-control" type="file" name="profilePic" accept="image/jpeg,image/png,image/gif,image/webp" required>
                                 </div>
-                                <div class="col-6 text-end">
-                                    <a href="/home" class="btn btn-primary"> Continue to Homepage </a>
-                                </div>
+                                <button class="btn btn-primary" type="submit">Upload picture</button>
+                                <a href="{{dashboard}}" class="btn btn-secondary">Back to Dashboard</a>
                             </form>
                         </div>
                     </div>

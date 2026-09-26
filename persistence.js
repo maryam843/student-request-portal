@@ -98,6 +98,17 @@ async function getUserByResetToken(token) {
 }
 
 /**
+ * Saves a new profile picture file name for a user.
+ * @param {string} email - The email of the user.
+ * @param {string} profilePic - The file name inside the uploads folder.
+ * @returns {Promise} Resolves once the user is updated.
+ */
+async function updateProfilePic(email, profilePic) {
+    const db = await connectDB();
+    await db.collection('users').updateOne({ email }, { $set: { profilePic } });
+}
+
+/**
  * Updates user approval status.
  * @param {string} email - The email of the user.
  * @returns {Promise} Resolves once the approval status is updated.
@@ -426,6 +437,7 @@ module.exports = {
     getUserByResetToken,
     insertRequest,
     updatePassword,
+    updateProfilePic,
     getRequests,
     getRequestsByStudent,
     getRequestsBySemester,

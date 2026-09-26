@@ -162,16 +162,28 @@ function logEmailDetails(to, verificationLink) {
 
 
 /**
- * Handle profile picture upload request
+ * Show the profile page of the logged-in user
  */
-app.post('/upload-profile', uploadProfilePic, async (req, res) => {
-    try {
-        const profilePicPath = req.file ? `/uploads/${req.file.filename}` : null;
-        res.render('success', { imagePath: profilePicPath });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Upload failed');
+app.get('/profile', requireLogin, async (req, res) => {
+    const user = await business.getUserByEmail(req.session.user.email);
+    if (!user) return res.redirect("/login?error=User not found.");
+
+    const dashboard = user.accountType === "department_head" ? "/admin-dashboard" : "/student-dashboard";
+    res.render('profile', { user, dashboard, error: text(req.query.error), msg: text(req.query.msg) });
+});
+
+/**
+ * Handle profile picture upload request (changes the picture of the logged-in user)
+ */
+app.post('/upload-profile', requireLogin, uploadProfilePic, async (req, res) => {
+    if (req.uploadError) {
+        return res.redirect(`/profile?error=${encodeURIComponent(req.uploadError)}`);
     }
+    if (!req.file) {
+        return res.redirect("/profile?error=Please choose a picture first.");
+    }
+    await persistence.updateProfilePic(req.session.user.email, req.file.filename);
+    res.redirect("/profile?msg=Profile picture updated.");
 });
 
 
