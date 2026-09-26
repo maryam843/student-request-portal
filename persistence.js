@@ -74,7 +74,7 @@ async function getUserByEmail(email) {
 async function storeResetToken(email, token, expiresAt) {
     const db = await connectDB();
     await db.collection('users').updateOne(
-      { email },
+      { email: email.toLowerCase() },
       {
         $set: {
           resetToken: token,
@@ -82,6 +82,19 @@ async function storeResetToken(email, token, expiresAt) {
         },
       }
     );
+}
+
+/**
+ * Finds the user with this reset token, if the token has not expired yet.
+ * @param {string} token - The reset token from the link.
+ * @returns {Promise} Resolves with the user or null.
+ */
+async function getUserByResetToken(token) {
+    const db = await connectDB();
+    return await db.collection('users').findOne({
+        resetToken: token,
+        resetTokenExpires: { $gt: new Date() }
+    });
 }
 
 /**
@@ -410,6 +423,7 @@ module.exports = {
     verifyUserToken,
     storeSession,
     storeResetToken,
+    getUserByResetToken,
     insertRequest,
     updatePassword,
     getRequests,

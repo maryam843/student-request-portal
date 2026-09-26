@@ -50,7 +50,7 @@ app.use(session({
  * Return the value only if it is plain text (not an array or object), otherwise ""
  */
 function text(value) {
-    return typeof value === 'string' ? value.trim() : "";
+    return typeof value === 'string' ? value : "";
 }
 
 /**
@@ -271,55 +271,39 @@ app.get("/verify-email", async (req, res) => {
  * Render forgot password form
  */
 app.get('/forgot-password', (req, res) => {
-    res.send(`
-        <h2>Forgot Password</h2>
-        <form action="/forgot-password" method="POST">
-            <label>Email:</label><br>
-            <input type="email" name="email" required /><br><br>
-            <button type="submit">Send Reset Link</button>
-        </form>
-    `);
+    res.render('forgot-password');
 });
 
 /**
  * Handle forgot password logic and generate reset token
  */
 app.post('/forgot-password', async (req, res) => {
-    const email = text(req.body.email);
+    const email = text(req.body.email).toLowerCase();
+    // Same message whether the email exists or not, so nobody can test which emails are registered
+    const message = "If this email is registered, a reset link has been sent. (Demo: the link is printed in the server console.)";
     try {
         const user = await business.getUserByEmail(email);
-        if (!user) {
-            return res.send(`<p>User not found. <a href="/forgot-password">Try again</a></p>`);
+        if (user) {
+            const token = await business.generateResetToken(email);
+            const resetLink = `http://localhost:${port}/reset-password?token=${token}`;
+            console.log(`Password Reset Link: ${resetLink}`);
         }
-        const token = await business.generateResetToken(email);
-        const resetLink = `http://localhost:8000/reset-password?token=${token}`;
-        console.log(`Password Reset Link: ${resetLink}`);
-        return res.send(`<p>✅ Password reset link sent! (Check console)</p>`);
+        return res.render('forgot-password', { message });
     } catch (err) {
         console.error("Error generating reset token:", err);
-        return res.send(`<p>Error occurred. Try again later.</p>`);
+        return res.render('forgot-password', { error: "Error occurred. Try again later." });
     }
 });
 
 /**
- * Render password reset form
+ * Render password reset form (the token is escaped by Handlebars)
  */
 app.get('/reset-password', (req, res) => {
     const token = text(req.query.token);
     if (!token) {
-        return res.send("Invalid or expired token");
+        return res.render('forgot-password', { error: "Invalid or expired reset link. Please request a new one." });
     }
-    res.send(`
-        <h2>Reset Password</h2>
-        <form action="/reset-password" method="POST">
-            <input type="hidden" name="token" value="${token}" />
-            <label>New Password:</label><br>
-            <input type="password" name="password" required /><br><br>
-            <label>Confirm Password:</label><br>
-            <input type="password" name="confirmPassword" required /><br><br>
-            <button type="submit">Reset Password</button>
-        </form>
-    `);
+    res.render('reset-password', { token });
 });
 
 /**
@@ -329,19 +313,15 @@ app.post('/reset-password', async (req, res) => {
     const token = text(req.body.token);
     const password = text(req.body.password);
     const confirmPassword = text(req.body.confirmPassword);
-    if (password !== confirmPassword) {
-        return res.send(`<p>Passwords do not match. <a href="/reset-password?token=${token}">Try again</a></p>`);
-    }
     try {
-        const success = await business.resetPassword(token, password);
-        if (success) {
-            return res.send(`<p>✅ Password updated! <a href="/login">Login</a></p>`);
-        } else {
-            return res.send(`<p>❌ Invalid or expired token. <a href="/forgot-password">Request again</a></p>`);
+        const result = await business.resetPassword(token, password, confirmPassword);
+        if (result.success) {
+            return res.redirect("/login?msg=Password updated! Please login with your new password.");
         }
+        return res.render('reset-password', { token, error: result.message });
     } catch (err) {
         console.error("Password reset error:", err);
-        return res.send(`<p>Error updating password. Try again.</p>`);
+        return res.render('reset-password', { token, error: "Error updating password. Try again." });
     }
 });
 

@@ -74,6 +74,7 @@ async function authenticateUser(email, password) {
  * Generates a secure token for password reset and stores it in the database with expiry.
  */
 async function generateResetToken(email) {
+    email = email.toLowerCase();
     const user = await persistence.getUserByEmail(email);
     if (!user) {
         throw new Error('No user found with that email');
@@ -88,18 +89,14 @@ async function generateResetToken(email) {
 
 /**
  * Resets a user's password using a valid token. Hashes and stores the new password.
+ * Returns { success, message } so the caller can show the right message.
  */
 async function resetPassword(token, newPassword, repeatPassword) {
     if (!newPassword || newPassword !== repeatPassword) {
         return { success: false, message: "Passwords do not match or are empty." };
     }
 
-    const db = await connectDB();
-    const user = await db.collection('users').findOne({
-        resetToken: token,
-        resetTokenExpires: { $gt: new Date() }
-    });
-
+    const user = await persistence.getUserByResetToken(token);
     if (!user) {
         return { success: false, message: "Invalid or expired reset token." };
     }
