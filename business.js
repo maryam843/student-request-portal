@@ -1,9 +1,13 @@
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const persistence = require('./persistence');
+
+// bcrypt cost factor: each +1 doubles the time needed to hash (and to guess) a password
+const BCRYPT_ROUNDS = 10;
 const { connectDB } = require('./persistence');
 
 /**
- * Registers a new user after validating inputs, hashing password with salt,
+ * Registers a new user after validating inputs, hashing the password with bcrypt,
  * and generating a verification token. Stores the user in the database
  * and returns the verification link.
  */
@@ -17,15 +21,13 @@ async function registerUser(username, email, password, repeatPassword, accountTy
     if (existingUser) return false;
 
     try {
-        const salt = crypto.randomBytes(16).toString('hex');
-        const hashedPassword = crypto.createHash('sha256').update(password + salt).digest('hex');
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
         const verificationToken = crypto.randomBytes(20).toString('hex');
 
         const newUser = {
             username,
             email: email.toLowerCase(),
             passwordHash: hashedPassword,
-            salt,
             accountType,
             verified: false,
             verificationToken,
@@ -57,14 +59,14 @@ async function verifyUser(token) {
 }
 
 /**
- * Authenticates a user by comparing the hashed input password with the stored hash.
+ * Authenticates a user by checking the input password against the stored bcrypt hash.
  */
 async function authenticateUser(email, password) {
     const user = await persistence.getUserByEmail(email);
     if (!user) return null;
 
-    const hashedPassword = crypto.createHash('sha256').update(password + user.salt).digest('hex');
-    return hashedPassword === user.passwordHash ? user : null;
+    const matches = await bcrypt.compare(password, user.passwordHash);
+    return matches ? user : null;
 }
 
 /**
@@ -101,8 +103,8 @@ async function resetPassword(token, newPassword, repeatPassword) {
         return { success: false, message: "Invalid or expired reset token." };
     }
 
-    const salt = crypto.randomBytes(16).toString('hex');
-    await persistence.updatePassword(user.email, newPassword, salt);
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await persistence.updatePassword(user.email, hashedPassword);
 
     return { success: true, message: "Password reset successful." };
 }

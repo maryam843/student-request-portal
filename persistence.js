@@ -175,21 +175,19 @@ async function getStudentByEmail(email) {
 /**
  * Updates the user's password.
  * @param {string} email - The email of the user.
- * @param {string} newPassword - The new password.
- * @param {string} newSalt - The salt for the password.
+ * @param {string} passwordHash - The new bcrypt password hash.
  * @returns {Promise} Resolves once the password is updated.
  */
-async function updatePassword(email, newPassword, newSalt) {
+async function updatePassword(email, passwordHash) {
     const db = await connectDB();
-    const hashedPassword = crypto.createHash('sha256').update(newPassword + newSalt).digest('hex');
     await db.collection('users').updateOne(
         { email: email },
         {
             $set: {
-                passwordHash: hashedPassword,
-                salt: newSalt
+                passwordHash: passwordHash
             },
             $unset: {
+                salt: "",
                 resetToken: "",
                 resetTokenExpires: ""
             }
