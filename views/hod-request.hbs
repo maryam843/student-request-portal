@@ -101,20 +101,26 @@
 <p><strong>Category:</strong> {{request.category}}</p>
 <p><strong>Description:</strong> {{request.description}}</p>
 <p><strong>Status:</strong> {{request.status}}</p>
-<p><strong>Timestamp:</strong> {{request.timestamp}}</p>
-<p><strong>Estimated Completion:</strong> {{request.estimatedCompletion}}</p>
+<p><strong>Submitted:</strong> {{formatDate request.timestamp}}</p>
+<p><strong>Estimated Completion:</strong> {{formatDate request.estimatedCompletion}}</p>
 
-<!-- Form for processing the request -->
+<!-- Form for processing the request (only while it is still pending) -->
+{{#if (eq request.status "Pending")}}
 <form action="/hod/request/{{request._id}}" method="POST">
     <label for="status">Change Status</label>
     <select name="status" id="status" required>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
+        <option value="Approved">Approved</option>
+        <option value="Rejected">Rejected</option>
     </select>
     <label for="note">Note:</label>
     <textarea name="note" id="note" rows="4" placeholder="Optional note..."></textarea>
     <button type="submit">Process Request</button>
 </form>
+{{else}}
+<p><strong>Note:</strong> {{#if request.note}}{{request.note}}{{else}}—{{/if}}</p>
+<p><em>This request is {{request.status}} and cannot be changed.</em></p>
+{{/if}}
+<p><a href="/hod-requests">⬅️ Back to Student Requests</a></p>
 
 </div>
 

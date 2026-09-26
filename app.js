@@ -557,6 +557,14 @@ app.post("/hod/request/:id", requireRole("department_head"), async (req, res) =>
         const request = await persistence.getRequestById(req.params.id);
         if (!request) return res.status(404).render("error", { message: "Request not found." });
 
+        // the only statuses the HoD can set; Pending and Cancelled are set by the system/student
+        if (status !== "Approved" && status !== "Rejected") {
+            return res.status(400).render("error", { message: "Status must be Approved or Rejected." });
+        }
+        if (request.status !== "Pending") {
+            return res.status(400).render("error", { message: `This request is already ${request.status}.` });
+        }
+
         await business.processRequest(req.params.id, status, note, request.studentEmail);
         res.redirect(`/hod-requests`);
     } catch (error) {
