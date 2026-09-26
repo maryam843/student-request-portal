@@ -4,7 +4,6 @@ const persistence = require('./persistence');
 
 // bcrypt cost factor: each +1 doubles the time needed to hash (and to guess) a password
 const BCRYPT_ROUNDS = 10;
-const { connectDB } = require('./persistence');
 
 /**
  * Registers a new user after validating inputs, hashing the password with bcrypt,
@@ -108,26 +107,10 @@ async function resetPassword(token, newPassword, repeatPassword) {
 }
 
 /**
- * Creates a new session for a user with a unique session key and stores it in the database.
- */
-async function createSession(user) {
-    const sessionKey = crypto.randomUUID();
-    const sessionData = {
-        key: sessionKey,
-        userId: user._id,
-        created_at: new Date(),
-        expiry: new Date(Date.now() + 1000 * 60 * 30)
-    };
-    await persistence.storeSession(sessionData);
-    return sessionKey;
-}
-
-/**
  * Retrieves a user object from the database by email.
  */
 async function getUserByEmail(email) {
-    const db = await connectDB();
-    return await db.collection('users').findOne({ email: email.toLowerCase() });
+    return await persistence.getUserByEmail(email);
 }
 
 /**
@@ -192,7 +175,6 @@ async function getRequestsByStudent(email) {
 module.exports = {
     registerUser,
     authenticateUser,
-    createSession,
     verifyUser,
     getUserByEmail,
     generateResetToken,

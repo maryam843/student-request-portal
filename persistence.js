@@ -29,17 +29,6 @@ function isValidId(id) {
 }
 
 /**
- * Validates user credentials by email.
- * @param {string} email - The email of the user to validate.
- * @returns {Promise} Resolves with user data or false if not found.
- */
-async function validateCredentials(email) {
-    const db = await connectDB();
-    const user = await db.collection('users').findOne({ email });
-    return user || false;
-}
-
-/**
  * Registers a new user.
  * @param {Object} user - The user data to insert.
  * @returns {Promise} Resolves with true if inserted successfully, otherwise false.
@@ -109,74 +98,6 @@ async function updateProfilePic(email, profilePic) {
 }
 
 /**
- * Updates user approval status.
- * @param {string} email - The email of the user.
- * @returns {Promise} Resolves once the approval status is updated.
- */
-async function updateApproval(email) {
-    const db = await connectDB();
-    await db.collection('users').updateOne(
-        { email },
-        { $set: { verified: true } }
-    );
-}
-
-/**
- * Updates a session or creates a new one.
- * @param {Object} sd - Session data.
- * @returns {Promise} Resolves once the session is updated or created.
- */
-async function updateSession(sd) {
-    const db = await connectDB();
-    await db.collection('sessions').deleteMany({
-        expires_at: { $lt: new Date() }
-    });
-    const existingSession = await db.collection('sessions').findOne({ key: sd.key });
-    if (existingSession) {
-        await db.collection('sessions').updateOne(
-            { key: sd.key },
-            { $set: { data: sd.data, expires_at: new Date(sd.expiry) } }
-        );
-    } else {
-        await db.collection('sessions').insertOne({
-            key: sd.key,
-            data: sd.data,
-            expires_at: new Date(sd.expiry)
-        });
-    }
-}
-
-/**
- * Stores a new session.
- * @param {Object} session - The session data to store.
- * @returns {Promise} Resolves once the session is stored.
- */
-async function storeSession(session) {
-    const db = await connectDB();
-    await db.collection('sessions').insertOne(session);
-}
-
-/**
- * Fetches a session by its key.
- * @param {string} sessionKey - The key of the session to fetch.
- * @returns {Promise} Resolves with the session data.
- */
-async function getSession(sessionKey) {
-    const db = await connectDB();
-    return await db.collection('sessions').findOne({ key: sessionKey });
-}
-
-/**
- * Deletes a session by its key.
- * @param {string} sessionKey - The key of the session to delete.
- * @returns {Promise} Resolves once the session is deleted.
- */
-async function deleteSession(sessionKey) {
-    const db = await connectDB();
-    await db.collection('sessions').deleteOne({ key: sessionKey });
-}
-
-/**
  * Verifies a user token and updates the user as verified.
  * @param {string} token - The token to verify.
  * @returns {Promise} Resolves with true if successful, otherwise false.
@@ -194,16 +115,6 @@ async function verifyUserToken(token) {
     } catch {
         return false;
     }
-}
-
-/**
- * Fetches student data by email.
- * @param {string} email - The email of the student to fetch.
- * @returns {Promise} Resolves with the student data.
- */
-async function getStudentByEmail(email) {
-    const db = await connectDB();
-    return await db.collection("users").findOne({ email: email });
 }
 
 /**
@@ -240,27 +151,6 @@ async function insertRequest(request) {
 }
 
 /**
- * Fetches all requests for a student by email.
- * @param {string} email - The email of the student.
- * @returns {Promise} Resolves with an array of requests.
- */
-async function getRequestsByStudent(email) {
-    const db = await connectDB();
-    return await db.collection("requests").find({ studentEmail: email }).toArray();
-}
-
-/**
- * Fetches requests filtered by semester for a student.
- * @param {string} email - The email of the student.
- * @param {string} semester - The semester to filter by.
- * @returns {Promise} Resolves with an array of requests.
- */
-async function getRequestsBySemester(email, semester) {
-    const db = await connectDB();
-    return await db.collection("requests").find({ studentEmail: email, semester }).toArray();
-}
-
-/**
  * Cancels a request by its ID and student email.
  * @param {string} requestId - The ID of the request to cancel.
  * @param {string} email - The email of the student.
@@ -282,26 +172,6 @@ async function cancelRequestById(requestId, email) {
 async function getPendingCountByCategory(category) {
     const db = await connectDB();
     return await db.collection("requests").countDocuments({ category, status: "Pending" });
-}
-
-/**
- * Fetches all queues and their counts.
- * @param {Object} filter - The filter to apply to the requests.
- * @returns {Promise} Resolves with an array of queue counts.
- */
-async function getQueuesWithCounts(filter = { status: 'Pending' }) {
-    const db = await connectDB();
-    const matchStage = { $match: filter };
-    return await db.collection("requests").aggregate([
-        matchStage,
-        {
-            $group: {
-                _id: "$category",
-                count: { $sum: 1 }
-            }
-        },
-        { $sort: { _id: 1 } }
-    ]).toArray();
 }
 
 /**
@@ -438,26 +308,17 @@ module.exports = {
     dbName,
     connectDB,
     isValidId,
-    validateCredentials,
     createRegistration,
-    updateApproval,
-    updateSession,
-    getSession,
-    deleteSession,
     getUserByEmail,
     verifyUserToken,
-    storeSession,
     storeResetToken,
     getUserByResetToken,
     insertRequest,
     updatePassword,
     updateProfilePic,
     getRequests,
-    getRequestsByStudent,
-    getRequestsBySemester,
     cancelRequestById,
     getPendingCountByCategory,
-    getQueuesWithCounts,
     getRequestsByCategory,
     getRequestById,
     updateRequestStatus,
@@ -466,6 +327,5 @@ module.exports = {
     getStudentNameByEmail,
     markRequestAsNotified,
     getQueuesWithCountsOut,
-    getStatusCounts,
-    getStudentByEmail
+    getStatusCounts
 };

@@ -7,7 +7,6 @@ const path = require('path');
 const multer = require('multer');
 const app = express();
 const hbs = require("hbs");
-const cookieParser = require('cookie-parser');
 const persistence = require("./persistence");
 const crypto = require('crypto');
 
@@ -22,7 +21,6 @@ app.set('query parser', 'simple');
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(cookieParser());
 
 if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET is not set. Copy .env.example to .env and fill it in.");
@@ -77,14 +75,6 @@ function requireRole(accountType) {
         next();
     };
 }
-
-app.use((req, res, next) => {
-    if (!req.cookies.csrfToken) {
-        const token = crypto.randomBytes(32).toString('hex');
-        res.cookie('csrfToken', token, { httpOnly: true });
-    }
-    next();
-});
 
 const port = process.env.PORT || 8000;
 
@@ -621,29 +611,6 @@ app.get("/hod/random", requireRole("department_head"), async (req, res) => {
 });
 
 
-
-/**
- * Rating submission route with CSRF protection
- */
-app.post('/rate', (req, res) => {
-    const tokenFromForm = req.body.csrfToken;
-    const tokenFromCookie = req.cookies.csrfToken;
-
-    if (tokenFromForm !== tokenFromCookie) {
-        return res.status(403).send('CSRF token mismatch');
-    }
-
-    const rating = req.body.rating;
-    res.send('Thanks for your rating!');
-});
-
-/**
- * Render rating form with CSRF token
- */
-app.get('/rate', (req, res) => {
-    const csrfToken = req.cookies.csrfToken;
-    res.render('rate_form', { csrfToken });
-});
 
 /**
  * Any other address: show a "page not found" error page
