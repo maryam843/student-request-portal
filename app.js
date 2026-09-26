@@ -421,11 +421,14 @@ app.get('/student-dashboard', requireRole("student"), async (req, res) => {
 
     const requests = await persistence.getRequestsByEmail(user.email); 
     const badgeCount = requests.filter(r => r.studentNotified === false).length;
+    const pendingCount = requests.filter(r => r.status === "Pending").length;
 
     res.render('STUDENT_homePage', { 
         user,
         email: user.email,
         badgeCount,
+        requestCount: requests.length,
+        pendingCount,
         profilePic: user.profilePic
     });
 });
