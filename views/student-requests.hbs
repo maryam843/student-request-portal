@@ -145,7 +145,6 @@
       {{#if (eq status "Pending")}}
       <div class="cancel-btn-container">
         <form action="/student-cancel/{{_id}}" method="POST">
-          <input type="hidden" name="email" value="{{../email}}" />
           <button type="submit">Cancel</button>
         </form>
       </div>
@@ -158,7 +157,7 @@
 </table>
 
 <div class="center-link">
-  <a href="/student-request?email={{email}}">Submit New Request</a>
-  <a href="/student-dashboard?email={{email}}">Back to HomePage</a>
+  <a href="/student-request">Submit New Request</a>
+  <a href="/student-dashboard">Back to HomePage</a>
 </div> 
 

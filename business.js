@@ -11,8 +11,8 @@ const { connectDB } = require('./persistence');
  * and generating a verification token. Stores the user in the database
  * and returns the verification link.
  */
-async function registerUser(username, email, password, repeatPassword, accountType, college, dob, ID, nationality, address, phone, profilePic) {
-    if (!accountType || !password || password !== repeatPassword) return false;
+async function registerUser(username, email, password, repeatPassword, college, dob, ID, nationality, address, phone, profilePic) {
+    if (!password || password !== repeatPassword) return false;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return false;
@@ -28,7 +28,8 @@ async function registerUser(username, email, password, repeatPassword, accountTy
             username,
             email: email.toLowerCase(),
             passwordHash: hashedPassword,
-            accountType,
+            // everyone who registers is a student; the HoD account is created by scripts/seed.js
+            accountType: "student",
             verified: false,
             verificationToken,
             college,

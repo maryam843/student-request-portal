@@ -387,6 +387,7 @@ async function getQueuesWithCountsOut() {
 }
 
 module.exports = {
+    dbName,
     connectDB,
     validateCredentials,
     createRegistration,

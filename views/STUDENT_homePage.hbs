@@ -250,7 +250,7 @@
     {{#if badgeCount}}
     <p style="color: green; font-weight: bold; font-size: 1.2em;">
         🔔 You have {{badgeCount}} new update{{#unless (eq badgeCount 1)}}s{{/unless}} on your requests! 
-        <a href="/student-requests?email={{user.email}}">Click here!</a>
+        <a href="/student-requests">Click here!</a>
     </p>
 {{else}}
     <p style="color: gray;">No new updates at the moment.</p>
@@ -267,7 +267,7 @@
             <use xlink:href="/img/brand/coreui.svg#full"></use>
           </svg></a>
         <ul class="header-nav d-none d-md-flex">
-          <li class="nav-item"  style="color: rgb(50, 152, 50); font-weight: bold;"><a class="nav-link" href="/student-requests?email={{email}}">Requests</a></li>
+          <li class="nav-item"  style="color: rgb(50, 152, 50); font-weight: bold;"><a class="nav-link" href="/student-requests">Requests</a></li>
        <!--   <li class="nav-item"><a class="nav-link" href="/student-request?email={{email}}">Submit new Request</a></li>-->
           <li class="nav-item"><a class="nav-link" href="#">Dashboard</a></li>
           <li class="nav-item"><a class="nav-link" href="#">Users</a></li>
@@ -329,10 +329,12 @@
               <div class="dropdown-divider"></div><a class="dropdown-item" href="#">
                 <svg class="icon me-2">
                   <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-lock-locked"></use>
-                </svg> Lock Account</a><a class="dropdown-item" href="#">
+                </svg> Lock Account</a><form action="/logout" method="POST">
+                <button type="submit" class="dropdown-item">
                 <svg class="icon me-2">
                   <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use>
-                </svg> Logout</a>
+                </svg> Logout</button>
+              </form>
             </div>
           </li>
         </ul>

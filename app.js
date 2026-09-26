@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const business = require('./business');
 const path = require('path');
 const multer = require('multer');
@@ -20,6 +22,53 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(cookieParser());
+
+if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET is not set. Copy .env.example to .env and fill it in.");
+}
+
+// Login sessions: the browser only gets a random session id in a cookie,
+// the session data (who is logged in) is stored in MongoDB.
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        dbName: persistence.dbName,
+        collectionName: 'sessions'
+    }),
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60 * 2
+    }
+}));
+
+/**
+ * Only let logged-in users through; everybody else goes to the login page
+ */
+function requireLogin(req, res, next) {
+    if (!req.session.user) {
+        return res.redirect("/login?error=Please login first.");
+    }
+    next();
+}
+
+/**
+ * Only let logged-in users with the given account type through
+ */
+function requireRole(accountType) {
+    return function (req, res, next) {
+        if (!req.session.user) {
+            return res.redirect("/login?error=Please login first.");
+        }
+        if (req.session.user.accountType !== accountType) {
+            return res.status(403).send("You are not allowed to open this page.");
+        }
+        next();
+    };
+}
 
 app.use((req, res, next) => {
     if (!req.cookies.csrfToken) {
@@ -89,11 +138,11 @@ app.post('/upload-profile', upload.single('profilePic'), async (req, res) => {
  * Handle user registration
  */
 app.post('/register', upload.single('profilePic'), async (req, res) => {
-    const { name, email, password, confirmPassword, accountType, college, dob, ID, nationality, address, phone } = req.body;
+    const { name, email, password, confirmPassword, college, dob, ID, nationality, address, phone } = req.body;
     const profilePic = req.file ? req.file.filename : null;
 
     try {
-        if (!email || !password || !name || !accountType) {
+        if (!email || !password || !name) {
             return res.send(`
                 <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px;">
                     Error: Missing required fields. Please fill in all details.
@@ -121,7 +170,7 @@ app.post('/register', upload.single('profilePic'), async (req, res) => {
             `);
         }
 
-        const userData = await business.registerUser(name, email, password, confirmPassword, accountType, college, dob, ID, nationality, address, phone, profilePic);
+        const userData = await business.registerUser(name, email, password, confirmPassword, college, dob, ID, nationality, address, phone, profilePic);
 
         if (!userData) {
             return res.send(`
@@ -262,12 +311,24 @@ app.post('/login', async (req, res) => {
             return res.redirect("/login?error=Account not verified. Please check your email.");
         }
 
-        // Redirect based on account type
-        if (user.accountType === "department_head") {
-            return res.redirect(`/admin-dashboard?email=${user.email}`);
-        } else {
-            return res.redirect(`/student-dashboard?email=${user.email}`);
-        }
+        // Start a fresh session and remember who is logged in
+        req.session.regenerate((err) => {
+            if (err) {
+                console.error("Error creating session:", err);
+                return res.redirect("/login?error=Something went wrong. Please try again later.");
+            }
+            req.session.user = {
+                email: user.email,
+                username: user.username,
+                accountType: user.accountType
+            };
+            // Redirect based on account type
+            if (user.accountType === "department_head") {
+                return res.redirect("/admin-dashboard");
+            } else {
+                return res.redirect("/student-dashboard");
+            }
+        });
     } catch (error) {
         console.error("Error during login:", error);
         return res.redirect("/login?error=Something went wrong. Please try again later.");
@@ -275,14 +336,21 @@ app.post('/login', async (req, res) => {
 });
 
 /**
- * Admin dashboard route
- * Renders the HoD (Head of Department) homepage if a valid email is provided
+ * Log out: delete the session and go back to the login page
  */
-app.get("/admin-dashboard", async (req, res) => {
-    const { email } = req.query;
-    if (!email) return res.redirect("/login?error=Please login first.");
+app.post('/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.clearCookie('connect.sid');
+        res.redirect("/login?msg=You have been logged out.");
+    });
+});
 
-    const user = await business.getUserByEmail(email);
+/**
+ * Admin dashboard route
+ * Renders the HoD (Head of Department) homepage for the logged-in HoD
+ */
+app.get("/admin-dashboard", requireRole("department_head"), async (req, res) => {
+    const user = await business.getUserByEmail(req.session.user.email);
     if (!user) return res.redirect("/login?error=User not found.");
 
     res.render('HOD_homePage', { 
@@ -296,11 +364,8 @@ app.get("/admin-dashboard", async (req, res) => {
  * Student dashboard route
  * Renders student dashboard with badge count of unnotified requests
  */
-app.get('/student-dashboard', async (req, res) => {
-    const { email } = req.query;
-    if (!email) return res.redirect("/login?error=Please login first.");
-
-    const user = await business.getUserByEmail(email);
+app.get('/student-dashboard', requireRole("student"), async (req, res) => {
+    const user = await business.getUserByEmail(req.session.user.email);
     if (!user) return res.redirect("/login?error=User not found.");
 
     const requests = await persistence.getRequestsByEmail(user.email); 
@@ -331,10 +396,8 @@ app.get(["/", "/login"], (req, res) => {
 /**
  * View all student requests
  */
-app.get("/student-requests", async (req, res) => {
-    const email = req.query.email;
-    if (!email) return res.status(400).send("Missing email in request.");
-
+app.get("/student-requests", requireRole("student"), async (req, res) => {
+    const email = req.session.user.email;
     const requests = await business.getRequestsByStudent(email);
     res.render("student-requests", { requests, email });
 });
@@ -342,18 +405,15 @@ app.get("/student-requests", async (req, res) => {
 /**
  * Render the form for student to submit a request
  */
-app.get("/student-request", (req, res) => {
-    const email = req.query.email;
-    if (!email) return res.redirect("/login");
-
-    res.render("request_form", { email });
+app.get("/student-request", requireRole("student"), (req, res) => {
+    res.render("request_form", { email: req.session.user.email });
 });
 
 /**
  * Submit a new student request
  */
-app.post("/student-request", async (req, res) => {
-    const studentEmail = req.body.email;
+app.post("/student-request", requireRole("student"), async (req, res) => {
+    const studentEmail = req.session.user.email;
     const studentName = await persistence.getStudentNameByEmail(studentEmail);
 
     const data = {
@@ -365,24 +425,25 @@ app.post("/student-request", async (req, res) => {
     };
 
     await business.createRequest(data);
-    res.redirect(`/student-requests?email=${studentEmail}`);
+    res.redirect("/student-requests");
 });
 
 /**
  * Cancel a student request by ID
  */
-app.post("/student-cancel/:id", async (req, res) => {
+app.post("/student-cancel/:id", requireRole("student"), async (req, res) => {
     const requestId = req.params.id;
-    const email = req.body.email;
+    const email = req.session.user.email;
 
+    // only cancels the request if it belongs to the logged-in student
     await persistence.cancelRequestById(requestId, email);
-    res.redirect(`/student-requests?email=${email}`);
+    res.redirect("/student-requests");
 });
 
 /**
  * View HoD requests with optional filters (category, semester)
  */
-app.get('/hod-requests', async (req, res) => {
+app.get('/hod-requests', requireRole("department_head"), async (req, res) => {
     const { category, semester } = req.query;
     let query = {};
 
@@ -402,7 +463,7 @@ app.get('/hod-requests', async (req, res) => {
 /**
  * View queue of requests for a specific category
  */
-app.get("/hod/queue/:category", async (req, res) => {
+app.get("/hod/queue/:category", requireRole("department_head"), async (req, res) => {
     const category = req.params.category;
     const requests = await persistence.getRequestsByCategory(category, "Pending");
 
@@ -419,7 +480,7 @@ app.get("/hod/queue/:category", async (req, res) => {
 /**
  * View details of a single request (HoD)
  */
-app.get("/hod/view/:id", async (req, res) => {
+app.get("/hod/view/:id", requireRole("department_head"), async (req, res) => {
     const requestId = req.params.id;
     const request = await persistence.getRequestById(requestId);
     if (!request) return res.status(404).send("Request not found");
@@ -430,7 +491,7 @@ app.get("/hod/view/:id", async (req, res) => {
 /**
  * Process a request (HoD changes status, adds note)
  */
-app.post("/hod/request/:id", async (req, res) => {
+app.post("/hod/request/:id", requireRole("department_head"), async (req, res) => {
     try {
         const { status, note } = req.body;
         const request = await persistence.getRequestById(req.params.id);
@@ -447,12 +508,15 @@ app.post("/hod/request/:id", async (req, res) => {
 /**
  * View request as a student and mark it as notified
  */
-app.get('/student/request/:id', async (req, res) => {
+app.get('/student/request/:id', requireRole("student"), async (req, res) => {
     const requestId = req.params.id;
 
     try {
         const request = await persistence.getRequestById(requestId);
-        if (!request) return res.status(404).send("Request not found");
+        // students can only open their own requests
+        if (!request || request.studentEmail !== req.session.user.email) {
+            return res.status(404).send("Request not found");
+        }
 
         if (request.studentNotified === false) {
             await persistence.markRequestAsNotified(requestId);
@@ -468,7 +532,7 @@ app.get('/student/request/:id', async (req, res) => {
 /**
  * Get a random pending request (for HoD)
  */
-app.get("/hod/random", async (req, res) => {
+app.get("/hod/random", requireRole("department_head"), async (req, res) => {
     const request = await persistence.getRandomPendingRequest();
     if (request) {
         res.redirect(`/hod/view/${request._id}`);
