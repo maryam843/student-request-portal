@@ -6,6 +6,8 @@ This is a web app I built for INFS 3201 – Web Technologies 2 at UDST in 2025. 
 
 <!-- demo video goes here -->
 
+The steps I follow in the video are in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
+
 | Student dashboard | Head of Department dashboard |
 |---|---|
 | ![Student dashboard](docs/screenshots/student-dashboard.png) | ![Head of Department dashboard](docs/screenshots/hod-dashboard.png) |
@@ -41,7 +43,7 @@ npm run demo
 
 Then open http://localhost:8000. `npm run demo` starts a temporary MongoDB in memory, adds demo data and starts the app, so you do not need to install MongoDB or create a `.env` file. The first time, it downloads MongoDB, so it needs an internet connection and can take a minute. Press Ctrl+C to stop it; the demo data is deleted.
 
-Demo logins (the password for all of them is `Demo@1234`):
+Demo logins (made-up accounts; the password for all of them is `Demo@1234`):
 
 | Role | Email |
 |---|---|
@@ -50,7 +52,14 @@ Demo logins (the password for all of them is `Demo@1234`):
 | Student | omar@example.com |
 | Student | lina@example.com |
 
-To use your own MongoDB instead: copy `.env.example` to `.env`, fill it in, then run `npm run seed` (this deletes the users and requests in that database) and `npm start`.
+The normal way, with your own MongoDB:
+
+```bash
+npm install
+cp .env.example .env    # Windows: copy .env.example .env; then fill in MONGODB_URI and SESSION_SECRET
+npm run seed            # adds the demo data (deletes the users and requests in that database)
+npm start
+```
 
 ## What I fixed in 2026
 
@@ -64,7 +73,8 @@ To use your own MongoDB instead: copy `.env.example` to `.env`, fill it in, then
 - Login, register and forgot password are limited to 10 tries per 15 minutes
 - A unique index on the user email in MongoDB
 - Fixed the password reset, the login messages, broken HTML and the made-up numbers on the Head of Department dashboard
-- Removed personal fields I did not need (date of birth, ID, nationality, address, phone) and the unused template pages and code
+- Removed personal fields I did not need (date of birth, ID, nationality, address, phone)
+- Removed the unused template pages, demo content and code
 
 ## Limitations
 
@@ -76,3 +86,5 @@ To use your own MongoDB instead: copy `.env.example` to `.env`, fill it in, then
 ## Credits
 
 Built for INFS 3201 – Web Technologies 2 at UDST (Winter 2025) on the CoreUI 4 admin template (MIT). Security fixes and bug fixes added in 2026.
+
+My code is under the MIT License (see [LICENSE](LICENSE)); the CoreUI files keep their own MIT license.
