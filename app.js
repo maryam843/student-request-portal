@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 const MongoStore = require('connect-mongo');
 const business = require('./business');
 const path = require('path');
@@ -15,6 +16,29 @@ const crypto = require('crypto');
 // View Engine Setup
 app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'views'));
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Security headers. The Content Security Policy only allows scripts, styles and images
+// from this server (the CoreUI files are in public/vendors), so an injected <script> or
+// onclick="..." does not run. frame-ancestors 'none' stops other sites from showing the
+// app in a frame (clickjacking).
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'"],
+            imgSrc: ["'self'", "data:"],
+            formAction: ["'self'"],
+            frameAncestors: ["'none'"],
+            // only useful behind HTTPS; on http://localhost it would break the page
+            upgradeInsecureRequests: isProduction ? [] : null
+        }
+    },
+    frameguard: { action: 'deny' },
+    strictTransportSecurity: isProduction
+}));
 
 // Middleware Setup
 // "simple" parsing: ?email[$ne]=x stays a plain text key and does not become a MongoDB operator
@@ -250,8 +274,10 @@ hbs.registerHelper('avatarSrc', function (profilePic) {
 hbs.registerHelper('avatar', function (profilePic, cssClass, size) {
     const src = profilePic ? '/uploads/' + profilePic : DEFAULT_AVATAR;
     const sizeAttrs = typeof size === 'number' ? ` width="${size}" height="${size}"` : '';
+    // public/js/app.js swaps in the data-fallback picture (no inline onerror, see the CSP above)
+    const fallback = profilePic ? ` data-fallback="${DEFAULT_AVATAR}"` : '';
     return new hbs.SafeString(
-        `<img class="${hbs.Utils.escapeExpression(typeof cssClass === 'string' ? cssClass : '')}" src="${hbs.Utils.escapeExpression(src)}"${sizeAttrs} alt="Profile picture" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR}'">`
+        `<img class="${hbs.Utils.escapeExpression(typeof cssClass === 'string' ? cssClass : '')}" src="${hbs.Utils.escapeExpression(src)}"${sizeAttrs}${fallback} alt="Profile picture">`
     );
 });
 
