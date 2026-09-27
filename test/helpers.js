@@ -39,9 +39,9 @@ async function setup() {
  * Close the database connections and stop MongoDB, so the test process can end
  */
 async function teardown() {
-    await loaded.sessionStore.close();
+    if (loaded) await loaded.sessionStore.close();
     await require('../persistence').closeDB();
-    await mongo.stop();
+    if (mongo) await mongo.stop();
 }
 
 /**
@@ -73,6 +73,30 @@ async function login(app, email, password = DEMO_PASSWORD) {
 }
 
 /**
+ * Fill in and send the register form (multipart, like the browser); fields can be
+ * changed with overrides, e.g. register(agent, { password: 'short' })
+ */
+async function register(agent, overrides = {}, picture = null) {
+    const fields = {
+        name: 'New Student',
+        email: 'new.student@example.com',
+        college: 'IT',
+        password: 'Password123',
+        confirmPassword: 'Password123',
+        ...overrides
+    };
+    const _csrf = await csrfToken(agent, '/register');
+    let req = agent.post('/register').field('_csrf', _csrf);
+    for (const [name, value] of Object.entries(fields)) {
+        req = req.field(name, value);
+    }
+    if (picture) {
+        req = req.attach('profilePic', picture.content, { filename: picture.filename, contentType: picture.contentType });
+    }
+    return req;
+}
+
+/**
  * The first request of a student in the demo data, e.g. firstRequest(db, 'sara@example.com', 'Pending')
  */
 async function firstRequest(persistence, studentEmail, status) {
@@ -80,4 +104,4 @@ async function firstRequest(persistence, studentEmail, status) {
     return db.collection('requests').findOne({ studentEmail, status });
 }
 
-module.exports = { setup, teardown, login, csrfToken, postForm, firstRequest, request, DEMO_PASSWORD };
+module.exports = { setup, teardown, login, register, csrfToken, postForm, firstRequest, request, DEMO_PASSWORD };

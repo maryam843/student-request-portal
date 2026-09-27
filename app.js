@@ -385,6 +385,10 @@ app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUp
             return showForm("The passwords do not match.");
         }
 
+        if (password.length < business.PASSWORD_MIN_LENGTH) {
+            return showForm(business.PASSWORD_TOO_SHORT);
+        }
+
         const existingUser = await business.getUserByEmail(email);
         if (existingUser) {
             return showForm("This email is already registered.");

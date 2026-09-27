@@ -1,5 +1,4 @@
 const { MongoClient, ObjectId } = require("mongodb");
-const uri = process.env.MONGODB_URI;
 const dbName = "course_management";
 let client;
 
@@ -9,6 +8,8 @@ let client;
  */
 async function connectDB() {
     if (!client) {
+        // read when connecting (not when this file is loaded), so the tests and the demo can set it first
+        const uri = process.env.MONGODB_URI;
         if (!uri) {
             throw new Error("MONGODB_URI is not set. Copy .env.example to .env and fill it in.");
         }

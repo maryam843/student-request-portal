@@ -5,6 +5,10 @@ const persistence = require('./persistence');
 // bcrypt cost factor: each +1 doubles the time needed to hash (and to guess) a password
 const BCRYPT_ROUNDS = 10;
 
+// Shortest password allowed when registering or resetting a password
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_TOO_SHORT = `The password must be at least ${PASSWORD_MIN_LENGTH} characters long.`;
+
 /**
  * Registers a new user after validating inputs, hashing the password with bcrypt,
  * and generating a verification token. Stores the user in the database
@@ -12,6 +16,7 @@ const BCRYPT_ROUNDS = 10;
  */
 async function registerUser(username, email, password, repeatPassword, college, profilePic) {
     if (!password || password !== repeatPassword) return false;
+    if (password.length < PASSWORD_MIN_LENGTH) return false;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return false;
@@ -88,6 +93,9 @@ async function generateResetToken(email) {
 async function resetPassword(token, newPassword, repeatPassword) {
     if (!newPassword || newPassword !== repeatPassword) {
         return { success: false, message: "The passwords do not match." };
+    }
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+        return { success: false, message: PASSWORD_TOO_SHORT };
     }
 
     const user = await persistence.getUserByResetToken(token);
@@ -195,6 +203,8 @@ async function getRequestsByStudent(email) {
 }
 
 module.exports = {
+    PASSWORD_MIN_LENGTH,
+    PASSWORD_TOO_SHORT,
     registerUser,
     authenticateUser,
     verifyUser,
