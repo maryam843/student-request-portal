@@ -31,15 +31,16 @@ if (!process.env.SESSION_SECRET) {
 
 // Login sessions: the browser only gets a random session id in a cookie,
 // the session data (who is logged in) is stored in MongoDB.
+const sessionStore = MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    dbName: persistence.dbName,
+    collectionName: 'sessions'
+});
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        dbName: persistence.dbName,
-        collectionName: 'sessions'
-    }),
+    store: sessionStore,
     cookie: {
         httpOnly: true,
         sameSite: 'lax',
@@ -751,11 +752,20 @@ app.use(async (err, req, res, next) => {
 /**
  * Create the database indexes, then start the server on the configured port
  */
-persistence.createIndexes()
-    .then(() => {
-        app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
-    })
-    .catch((err) => {
-        console.error("Could not prepare the database (is MongoDB running? are there duplicate emails?):", err.message);
-        process.exit(1);
-    });
+function start() {
+    return persistence.createIndexes()
+        .then(() => {
+            app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+        })
+        .catch((err) => {
+            console.error("Could not prepare the database (is MongoDB running? are there duplicate emails?):", err.message);
+            process.exit(1);
+        });
+}
+
+// The tests import the app without starting the server; "npm start" runs this file directly
+if (require.main === module) {
+    start();
+}
+
+module.exports = { app, start, sessionStore };

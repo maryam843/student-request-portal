@@ -27,7 +27,7 @@ async function startDemo() {
 
     console.log("\nOpen http://localhost:8000 and log in with one of the accounts above.");
     console.log("Press Ctrl+C to stop the demo (the demo data is deleted).\n");
-    require('../app');
+    await require('../app').start();
 
     process.on('SIGINT', async () => {
         await mongo.stop();

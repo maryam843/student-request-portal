@@ -19,6 +19,17 @@ async function connectDB() {
 }
 
 /**
+ * Closes the database connection (used by the tests when they finish).
+ * @returns {Promise} Resolves once the connection is closed.
+ */
+async function closeDB() {
+    if (client) {
+        await client.close();
+        client = null;
+    }
+}
+
+/**
  * Creates the database indexes the app relies on. Safe to run on every start
  * (MongoDB does nothing if the index already exists).
  * The unique index makes it impossible to have two accounts with the same email.
@@ -340,6 +351,7 @@ async function getQueuesWithCountsOut() {
 module.exports = {
     dbName,
     connectDB,
+    closeDB,
     createIndexes,
     isValidId,
     createRegistration,
