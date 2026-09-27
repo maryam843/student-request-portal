@@ -1,7 +1,7 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const bcrypt = require('bcrypt');
-const { setup, teardown, login, request, DEMO_PASSWORD } = require('./helpers');
+const { setup, teardown, login, postForm, request, DEMO_PASSWORD } = require('./helpers');
 
 let app, persistence;
 
@@ -74,7 +74,7 @@ test('logout deletes the session', async () => {
     const db = await persistence.connectDB();
     const sessionsBefore = await db.collection('sessions').countDocuments();
 
-    const res = await agent.post('/logout');
+    const res = await postForm(agent, '/logout');
     assert.equal(res.status, 302);
     assert.match(location(res), /^\/login\?msg=You have been logged out/);
     assert.equal(await db.collection('sessions').countDocuments(), sessionsBefore - 1);
@@ -90,7 +90,7 @@ test('logging in gives a new session id and the old one stops working', async ()
     assert.ok(oldCookie);
 
     // log in again in the same browser (same cookie) as another user
-    const second = await first.agent.post('/login').type('form').send({ email: 'lina@example.com', password: DEMO_PASSWORD });
+    const second = await postForm(first.agent, '/login', { email: 'lina@example.com', password: DEMO_PASSWORD });
     const newCookie = sessionCookie(second);
     assert.ok(newCookie);
     assert.notEqual(newCookie, oldCookie);

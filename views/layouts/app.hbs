@@ -25,6 +25,7 @@
       {{/each}}
       <li class="nav-item">
         <form action="/logout" method="POST">
+          <input type="hidden" name="_csrf" value="{{csrfToken}}">
           <button type="submit" class="nav-link">
             <svg class="nav-icon">
               <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use>
@@ -67,6 +68,7 @@
                 </svg> My Profile</a>
               <div class="dropdown-divider"></div>
               <form action="/logout" method="POST">
+                <input type="hidden" name="_csrf" value="{{csrfToken}}">
                 <button type="submit" class="dropdown-item">
                   <svg class="icon me-2">
                     <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use>

@@ -30,6 +30,7 @@
                 {{#if error}}<div class="alert alert-danger">{{error}}</div>{{/if}}
                 {{#if msg}}<div class="alert alert-success">{{msg}}</div>{{/if}}
                 <form action="/login" method="POST">
+                  <input type="hidden" name="_csrf" value="{{csrfToken}}">
                   <div class="input-group mb-3">
                     <span class="input-group-text">
                       <svg class="icon">

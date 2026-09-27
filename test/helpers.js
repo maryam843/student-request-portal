@@ -45,11 +45,30 @@ async function teardown() {
 }
 
 /**
+ * The CSRF token from the hidden _csrf field of a page the agent opens
+ * (default: the login page for visitors, the profile page for logged-in users)
+ */
+async function csrfToken(agent, page = '/login') {
+    const res = await agent.get(page);
+    const match = res.text.match(/name="_csrf" value="([0-9a-f]+)"/);
+    if (!match) throw new Error(`No CSRF token on ${page} (status ${res.status})`);
+    return match[1];
+}
+
+/**
+ * Send a form like the browser does: open a page to get the CSRF token, then POST with it
+ */
+async function postForm(agent, url, data = {}, tokenPage = '/profile') {
+    const _csrf = await csrfToken(agent, tokenPage);
+    return agent.post(url).type('form').send({ ...data, _csrf });
+}
+
+/**
  * Log in and return a supertest agent that keeps the session cookie
  */
 async function login(app, email, password = DEMO_PASSWORD) {
     const agent = request.agent(app);
-    const res = await agent.post('/login').type('form').send({ email, password });
+    const res = await postForm(agent, '/login', { email, password }, '/login');
     return { agent, res };
 }
 
@@ -61,4 +80,4 @@ async function firstRequest(persistence, studentEmail, status) {
     return db.collection('requests').findOne({ studentEmail, status });
 }
 
-module.exports = { setup, teardown, login, firstRequest, request, DEMO_PASSWORD };
+module.exports = { setup, teardown, login, csrfToken, postForm, firstRequest, request, DEMO_PASSWORD };

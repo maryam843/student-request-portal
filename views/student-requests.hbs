@@ -28,6 +28,7 @@
               {{#if (eq studentNotified false)}}<span class="badge bg-danger">New update</span>{{/if}}
               {{#if (eq status "Pending")}}
               <form action="/student-cancel/{{_id}}" method="POST">
+                <input type="hidden" name="_csrf" value="{{@root.csrfToken}}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
               </form>
               {{/if}}

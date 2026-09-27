@@ -3,6 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const { csrfSync } = require('csrf-sync');
 const MongoStore = require('connect-mongo');
 const business = require('./business');
 const path = require('path');
@@ -11,6 +12,7 @@ const app = express();
 const hbs = require("hbs");
 const persistence = require("./persistence");
 const crypto = require('crypto');
+const fs = require('fs');
 
 
 // View Engine Setup
@@ -71,6 +73,40 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 2
     }
 }));
+
+// CSRF protection: every form gets a secret token that is also kept in the session.
+// A POST without the right token (e.g. a form on another website that posts to this
+// app with the user's cookie) is refused with 403.
+const { csrfSynchronisedProtection, generateToken } = csrfSync({
+    size: 32,
+    getTokenFromRequest: (req) => req.body && req.body._csrf
+});
+
+// Forms with a file are read by Multer inside the route, so their token is checked
+// there (checkCsrfAfterUpload). Every other POST is checked here.
+const FILE_FORMS = ['/register', '/upload-profile'];
+
+app.use((req, res, next) => {
+    // a function, so a token (and a session) is only created when a page shows a form
+    res.locals.csrfToken = () => generateToken(req);
+    if (FILE_FORMS.includes(req.path)) {
+        return next();
+    }
+    csrfSynchronisedProtection(req, res, next);
+});
+
+/**
+ * Check the CSRF token of a form with a file (after Multer has read the form);
+ * if the token is wrong, delete the uploaded file again
+ */
+function checkCsrfAfterUpload(req, res, next) {
+    csrfSynchronisedProtection(req, res, (err) => {
+        if (err && req.file) {
+            fs.unlink(req.file.path, () => {});
+        }
+        next(err);
+    });
+}
 
 /**
  * Return the value only if it is plain text (not an array or object), otherwise ""
@@ -312,7 +348,7 @@ app.get('/profile', requireLogin, async (req, res) => {
 /**
  * Handle profile picture upload request (changes the picture of the logged-in user)
  */
-app.post('/upload-profile', requireLogin, uploadProfilePic, async (req, res) => {
+app.post('/upload-profile', requireLogin, uploadProfilePic, checkCsrfAfterUpload, async (req, res) => {
     if (req.uploadError) {
         flash(req, "danger", req.uploadError);
     } else if (!req.file) {
@@ -328,7 +364,7 @@ app.post('/upload-profile', requireLogin, uploadProfilePic, async (req, res) => 
 /**
  * Handle user registration
  */
-app.post('/register', limitTries('register'), uploadProfilePic, async (req, res) => {
+app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUpload, async (req, res) => {
     const [name, email, password, confirmPassword, college] =
         ['name', 'email', 'password', 'confirmPassword', 'college'].map(field => text(req.body[field]));
     const profilePic = req.file ? req.file.filename : null;
@@ -767,6 +803,9 @@ app.use(async (req, res) => {
  * (Express 5 also sends errors from async routes here)
  */
 app.use(async (err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        return showError(req, res, 403, "This form has expired. Please go back, reload the page and try again.");
+    }
     console.error("Unexpected error:", err);
     try {
         await showError(req, res, 500, "Something went wrong. Please try again.");

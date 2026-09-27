@@ -2,7 +2,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { setup, teardown, login } = require('./helpers');
+const { setup, teardown, login, csrfToken } = require('./helpers');
 
 const UPLOADS = path.join(__dirname, '..', 'uploads');
 // the 8 bytes every PNG file starts with
@@ -37,7 +37,9 @@ async function profilePicOf(email) {
 
 test('a file that is not an image is rejected', async () => {
     const { agent } = await login(app, 'sara@example.com');
+    const _csrf = await csrfToken(agent, '/profile');
     const res = await agent.post('/upload-profile')
+        .field('_csrf', _csrf)
         .attach('profilePic', Buffer.from('<script>alert(1)</script>'), { filename: 'photo.html', contentType: 'text/html' });
     assert.equal(res.status, 302);
 
@@ -49,7 +51,9 @@ test('a file that is not an image is rejected', async () => {
 
 test('an image with a wrong extension is rejected', async () => {
     const { agent } = await login(app, 'sara@example.com');
+    const _csrf = await csrfToken(agent, '/profile');
     await agent.post('/upload-profile')
+        .field('_csrf', _csrf)
         .attach('profilePic', PNG_HEADER, { filename: 'photo.svg', contentType: 'image/png' });
     const page = await agent.get('/profile');
     assert.match(page.text, /Only JPG, PNG, GIF or WEBP images are allowed/);
@@ -58,8 +62,10 @@ test('an image with a wrong extension is rejected', async () => {
 
 test('an image larger than 2 MB is rejected', async () => {
     const { agent } = await login(app, 'sara@example.com');
+    const _csrf = await csrfToken(agent, '/profile');
     const big = Buffer.concat([PNG_HEADER, Buffer.alloc(2 * 1024 * 1024)]);
     const res = await agent.post('/upload-profile')
+        .field('_csrf', _csrf)
         .attach('profilePic', big, { filename: 'big.png', contentType: 'image/png' });
     assert.equal(res.status, 302);
 
@@ -71,7 +77,9 @@ test('an image larger than 2 MB is rejected', async () => {
 
 test('a small PNG is accepted and saved under a random name', async () => {
     const { agent } = await login(app, 'sara@example.com');
+    const _csrf = await csrfToken(agent, '/profile');
     await agent.post('/upload-profile')
+        .field('_csrf', _csrf)
         .attach('profilePic', PNG_HEADER, { filename: 'me.png', contentType: 'image/png' });
 
     const page = await agent.get('/profile');

@@ -1,6 +1,6 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, teardown, login, firstRequest } = require('./helpers');
+const { setup, teardown, login, postForm, firstRequest } = require('./helpers');
 
 let app, persistence;
 
@@ -27,7 +27,7 @@ test('a student cannot open the Head of Department pages', async () => {
         assert.equal(res.status, 403, path);
     }
 
-    const decide = await agent.post(`/hod/request/${pending._id}`).type('form').send({ status: 'Approved', note: '' });
+    const decide = await postForm(agent, `/hod/request/${pending._id}`, { status: 'Approved', note: '' });
     assert.equal(decide.status, 403);
     const after = await persistence.getRequestById(String(pending._id));
     assert.equal(after.status, 'Pending');
@@ -40,7 +40,7 @@ test('the Head of Department cannot open the student pages', async () => {
         const res = await agent.get(path);
         assert.equal(res.status, 403, path);
     }
-    const cancel = await agent.post(`/student-cancel/${pending._id}`);
+    const cancel = await postForm(agent, `/student-cancel/${pending._id}`);
     assert.equal(cancel.status, 403);
 });
 
@@ -52,7 +52,7 @@ test("a student cannot open or cancel another student's request", async () => {
     assert.equal(view.status, 404);
     assert.doesNotMatch(view.text, new RegExp(omars.description));
 
-    await agent.post(`/student-cancel/${omars._id}`);
+    await postForm(agent, `/student-cancel/${omars._id}`);
     const after = await persistence.getRequestById(String(omars._id));
     assert.equal(after.status, 'Pending');
 });
@@ -64,7 +64,7 @@ test('a student can open and cancel their own pending request', async () => {
     const view = await agent.get(`/student/request/${own._id}`);
     assert.equal(view.status, 200);
 
-    const cancel = await agent.post(`/student-cancel/${own._id}`);
+    const cancel = await postForm(agent, `/student-cancel/${own._id}`);
     assert.equal(cancel.status, 302);
     const after = await persistence.getRequestById(String(own._id));
     assert.equal(after.status, 'Cancelled');
@@ -75,9 +75,9 @@ test('an invalid request id shows "not found" (404), not a server error', async 
     const hod = (await login(app, 'hod@example.com')).agent;
 
     assert.equal((await student.get('/student/request/not-an-id')).status, 404);
-    assert.equal((await student.post('/student-cancel/not-an-id')).status, 404);
+    assert.equal((await postForm(student, '/student-cancel/not-an-id')).status, 404);
     assert.equal((await hod.get('/hod/view/not-an-id')).status, 404);
-    assert.equal((await hod.post('/hod/request/not-an-id').type('form').send({ status: 'Approved' })).status, 404);
+    assert.equal((await postForm(hod, '/hod/request/not-an-id', { status: 'Approved' })).status, 404);
     // a valid id that does not exist
     assert.equal((await hod.get('/hod/view/0123456789abcdef01234567')).status, 404);
 });
