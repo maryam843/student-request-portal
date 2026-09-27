@@ -737,11 +737,12 @@ app.post("/hod/request/:id", requireRole("department_head"), async (req, res) =>
         if (status !== "Approved" && status !== "Rejected") {
             return showError(req, res, 400, "Status must be Approved or Rejected.");
         }
-        if (request.status !== "Pending") {
-            return showError(req, res, 400, `This request is already ${request.status}.`);
+        const updated = await business.processRequest(req.params.id, status, note, request.studentEmail);
+        if (!updated) {
+            // the student cancelled it or it was decided in the meantime; nothing was changed
+            const current = await persistence.getRequestById(req.params.id);
+            return showError(req, res, 409, `This request was already ${current.status.toLowerCase()}, so it was not changed.`);
         }
-
-        await business.processRequest(req.params.id, status, note, request.studentEmail);
         flash(req, "success", `Request ${status.toLowerCase()}.`);
         res.redirect(`/hod-requests`);
     } catch (error) {

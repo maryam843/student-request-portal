@@ -184,11 +184,12 @@ async function createRequest(data) {
 }
 
 /**
- * Updates the request status and adds a note.
- * Intended for HoD or admin processing of student requests.
+ * Updates the request status and adds a note (Head of Department decision).
+ * Returns false if the request was no longer Pending (already cancelled or decided).
  */
 async function processRequest(requestId, status, note, studentEmail) {
-    await persistence.updateRequestStatus(requestId, status, note);
+    const result = await persistence.updateRequestStatus(requestId, status, note);
+    return result.matchedCount === 1;
 }
 
 /**

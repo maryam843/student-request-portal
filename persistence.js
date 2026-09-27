@@ -218,16 +218,18 @@ async function getRequestById(requestId) {
 }
 
 /**
- * Resolves or rejects a request.
+ * Resolves or rejects a request, but only while it is still Pending. The check and the
+ * update are one database operation, so a request the student cancels at the same
+ * moment cannot be approved afterwards.
  * @param {string} id - The ID of the request.
  * @param {string} status - The status to update to.
  * @param {string} note - The note to include.
- * @returns {Promise} Resolves with the update result.
+ * @returns {Promise} Resolves with the update result (matchedCount is 0 if it was not Pending).
  */
 async function updateRequestStatus(id, status, note) {
     const db = await connectDB();
     return await db.collection("requests").updateOne(
-        { _id: new ObjectId(id) },
+        { _id: new ObjectId(id), status: "Pending" },
         { $set: { status, note, resolvedAt: new Date(), studentNotified: false } }
     );
 }
