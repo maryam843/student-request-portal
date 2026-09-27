@@ -24,7 +24,7 @@ function hashToken(token) {
 /**
  * Registers a new user after validating inputs, hashing the password with bcrypt,
  * and generating a verification token. Stores the user in the database
- * and returns the verification link.
+ * and returns the email and the verification token (app.js builds the link).
  */
 async function registerUser(username, email, password, repeatPassword, college, profilePic) {
     if (!password || password !== repeatPassword) return false;
@@ -57,7 +57,7 @@ async function registerUser(username, email, password, repeatPassword, college, 
 
         return {
             email,
-            verificationLink: `http://localhost:8000/verify-email?token=${verificationToken}`
+            verificationToken
         };
     } catch (error) {
         return false;

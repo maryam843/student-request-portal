@@ -61,3 +61,12 @@ test('a missing profile photo falls back to the default avatar without inline sc
     assert.match(res.text, /src="\/uploads\/missing.png"[^>]*data-fallback="\/img\/avatar-default.svg"/);
     assert.match(res.text, /<script src="\/js\/app.js"><\/script>/);
 });
+
+test('outside production the session cookie is httpOnly and SameSite=Lax but not Secure (http://localhost)', async () => {
+    const { res } = await login(app, 'sara@example.com');
+    const cookie = res.headers['set-cookie'].find(c => c.startsWith('connect.sid='));
+    assert.match(cookie, /HttpOnly/);
+    assert.match(cookie, /SameSite=Lax/);
+    assert.doesNotMatch(cookie, /Secure/);
+    assert.equal(res.headers['strict-transport-security'], undefined);
+});

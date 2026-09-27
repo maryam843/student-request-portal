@@ -20,6 +20,15 @@ app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'views'));
 
 const isProduction = process.env.NODE_ENV === 'production';
+const port = process.env.PORT || 8000;
+// Address of the app in the links that would be e-mailed (verification, password reset)
+const baseUrl = (process.env.BASE_URL || `http://localhost:${port}`).replace(/\/+$/, '');
+
+// In production the app runs behind an HTTPS proxy (e.g. a hosting platform): trust its
+// X-Forwarded-Proto header so Express knows the request was HTTPS and sends the secure cookie
+if (isProduction) {
+    app.set('trust proxy', 1);
+}
 
 // Security headers. The Content Security Policy only allows scripts, styles and images
 // from this server (the CoreUI files are in public/vendors), so an injected <script> or
@@ -70,6 +79,8 @@ app.use(session({
     cookie: {
         httpOnly: true,
         sameSite: 'lax',
+        // only sent over HTTPS in production; on http://localhost it must be false or login breaks
+        secure: isProduction,
         maxAge: 1000 * 60 * 60 * 2
     }
 }));
@@ -216,8 +227,6 @@ function requireRole(accountType) {
         next();
     };
 }
-
-const port = process.env.PORT || 8000;
 
 /**
  * Allow at most 10 tries per 15 minutes from the same IP address, then show a message
@@ -400,7 +409,7 @@ app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUp
             return showForm("Registration failed. Check the email address and try again.");
         }
 
-        logEmailLink(userData.email, "Verification link", userData.verificationLink);
+        logEmailLink(userData.email, "Verification link", `${baseUrl}/verify-email?token=${userData.verificationToken}`);
 
         return res.redirect("/login?msg=Account created. Open the verification link (printed in the server console), then log in.");
     } catch (error) {
@@ -444,7 +453,7 @@ app.post('/forgot-password', limitTries('forgot-password'), async (req, res) => 
         const user = await business.getUserByEmail(email);
         if (user) {
             const token = await business.generateResetToken(email);
-            const resetLink = `http://localhost:${port}/reset-password?token=${token}`;
+            const resetLink = `${baseUrl}/reset-password?token=${token}`;
             logEmailLink(email, "Reset link", resetLink);
         }
         return res.render('forgot-password', { message });

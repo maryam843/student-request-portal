@@ -43,6 +43,8 @@ test('only the SHA-256 hash of the reset token is stored', async () => {
         postForm(request.agent(app), '/forgot-password', { email: 'sara@example.com' }, '/forgot-password'));
     const token = link.searchParams.get('token');
     assert.match(token, /^[0-9a-f]{64}$/);
+    // without BASE_URL the links use localhost and PORT (default 8000)
+    assert.equal(link.origin + link.pathname, 'http://localhost:8000/reset-password');
 
     const user = await db.collection('users').findOne({ email: 'sara@example.com' });
     assert.notEqual(user.resetToken, token);
