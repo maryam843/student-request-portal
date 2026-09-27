@@ -33,9 +33,6 @@ async function registerUser(username, email, password, repeatPassword, college, 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return false;
 
-    const existingUser = await persistence.getUserByEmail(email);
-    if (existingUser) return false;
-
     try {
         const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
         const verificationToken = crypto.randomBytes(20).toString('hex');
@@ -53,7 +50,9 @@ async function registerUser(username, email, password, repeatPassword, college, 
             profilePic
         };
 
-        await persistence.createRegistration(newUser);
+        // fails (false) if the email is already registered: users.email has a unique index
+        const created = await persistence.createRegistration(newUser);
+        if (!created) return false;
 
         return {
             email,
@@ -131,6 +130,18 @@ async function getUserByEmail(email) {
     return await persistence.getUserByEmail(email);
 }
 
+/**
+ * The semesters students can choose and the HoD can filter by: from two years ago to next
+ * year, in the order they happen, e.g. in 2026: "Winter 2024", "Spring 2024", "Fall 2024", ..., "Fall 2027".
+ */
+function semesterList(year = new Date().getFullYear()) {
+    const semesters = [];
+    for (let y = year - 2; y <= year + 1; y++) {
+        semesters.push(`Winter ${y}`, `Spring ${y}`, `Fall ${y}`);
+    }
+    return semesters;
+}
+
 // Qatar weekend: Friday (5) and Saturday (6) in JavaScript's getDay()
 const WEEKEND_DAYS = [5, 6];
 
@@ -202,7 +213,7 @@ async function createRequest(data) {
  * Updates the request status and adds a note (Head of Department decision).
  * Returns false if the request was no longer Pending (already cancelled or decided).
  */
-async function processRequest(requestId, status, note, studentEmail) {
+async function processRequest(requestId, status, note) {
     const result = await persistence.updateRequestStatus(requestId, status, note);
     return result.matchedCount === 1;
 }
@@ -230,6 +241,7 @@ module.exports = {
     resetPassword,
     createRequest,
     processRequest,
+    semesterList,
     calculateEstimatedCompletionTime,
     getRequestsByStudent
 };

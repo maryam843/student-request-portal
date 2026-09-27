@@ -113,7 +113,7 @@ app.use((req, res, next) => {
 function checkCsrfAfterUpload(req, res, next) {
     csrfSynchronisedProtection(req, res, (err) => {
         if (err && req.file) {
-            fs.unlink(req.file.path, () => {});
+            deleteUpload(req.file.filename);
         }
         next(err);
     });
@@ -143,7 +143,8 @@ function noCache(res) {
 
 // The choices in the request form and in the HoD filters
 const CATEGORIES = ["Course Advice", "Attendance", "Registration", "Major Change"];
-const SEMESTERS = ["Fall 2023", "Fall 2024", "Fall 2025", "Spring 2023", "Spring 2024", "Spring 2025", "Winter 2023", "Winter 2024", "Winter 2025"];
+// the values of the college list on the register page
+const COLLEGES = ["Business", "IT", "Engineering", "General Education", "Health"];
 const STATUSES = ["Pending", "Approved", "Rejected", "Cancelled"];
 
 // Left menu for each account type; "key" marks the menu item of the page that is open
@@ -287,6 +288,14 @@ const upload = multer({
 });
 
 /**
+ * Delete a file from the uploads folder (only the file name is used, so it cannot point
+ * outside the folder); a file that is already gone is ignored
+ */
+function deleteUpload(fileName) {
+    fs.unlink(path.join(__dirname, 'uploads', path.basename(fileName)), () => {});
+}
+
+/**
  * Run the upload and keep the error message (too big, wrong type) instead of crashing
  */
 function uploadProfilePic(req, res, next) {
@@ -363,7 +372,12 @@ app.post('/upload-profile', requireLogin, uploadProfilePic, checkCsrfAfterUpload
     } else if (!req.file) {
         flash(req, "danger", "Please choose a picture first.");
     } else {
+        const user = await persistence.getUserByEmail(req.session.user.email);
         await persistence.updateProfilePic(req.session.user.email, req.file.filename);
+        // the old picture is not used any more
+        if (user && user.profilePic) {
+            deleteUpload(user.profilePic);
+        }
         flash(req, "success", "Profile picture updated.");
     }
     res.redirect("/profile");
@@ -378,8 +392,14 @@ app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUp
         ['name', 'email', 'password', 'confirmPassword', 'college'].map(field => text(req.body[field]));
     const profilePic = req.file ? req.file.filename : null;
 
-    // show the form again with the error; the typed name, email and college are kept
-    const showForm = (error) => res.status(400).render('register', { error, form: { name, email, college } });
+    // show the form again with the error; the typed name, email and college are kept.
+    // The uploaded picture is deleted, otherwise it would stay in uploads/ without an account.
+    const showForm = (error) => {
+        if (req.file) {
+            deleteUpload(req.file.filename);
+        }
+        return res.status(400).render('register', { error, form: { name, email, college } });
+    };
 
     try {
         if (req.uploadError) {
@@ -388,6 +408,10 @@ app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUp
 
         if (!email || !password || !name) {
             return showForm("Please fill in your name, email and password.");
+        }
+
+        if (!COLLEGES.includes(college)) {
+            return showForm("Please choose a college from the list.");
         }
 
         if (password !== confirmPassword) {
@@ -406,7 +430,7 @@ app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUp
         const userData = await business.registerUser(name, email, password, confirmPassword, college, profilePic);
 
         if (!userData) {
-            return showForm("Registration failed. Check the email address and try again.");
+            return showForm("Registration failed. Check the email address and try again, or log in if you already have an account.");
         }
 
         logEmailLink(userData.email, "Verification link", `${baseUrl}/verify-email?token=${userData.verificationToken}`);
@@ -610,7 +634,7 @@ app.get("/student-requests", requireRole("student"), async (req, res) => {
  * Render the form for student to submit a request
  */
 app.get("/student-request", requireRole("student"), async (req, res) => {
-    await renderPage(req, res, "request_form", { title: "New Request", active: "new-request", semesters: SEMESTERS, categories: CATEGORIES, form: {} });
+    await renderPage(req, res, "request_form", { title: "New Request", active: "new-request", semesters: business.semesterList(), categories: CATEGORIES, form: {} });
 });
 
 /**
@@ -628,10 +652,10 @@ app.post("/student-request", requireRole("student"), async (req, res) => {
         description: text(req.body.description)
     };
 
-    if (!SEMESTERS.includes(data.semester) || !CATEGORIES.includes(data.category) || !data.description.trim()) {
+    if (!business.semesterList().includes(data.semester) || !CATEGORIES.includes(data.category) || !data.description.trim()) {
         res.status(400);
         return renderPage(req, res, "request_form", {
-            title: "New Request", active: "new-request", semesters: SEMESTERS, categories: CATEGORIES, form: data,
+            title: "New Request", active: "new-request", semesters: business.semesterList(), categories: CATEGORIES, form: data,
             flash: { type: "danger", text: "Please choose a semester and a category and write a description." }
         });
     }
@@ -677,7 +701,7 @@ app.get('/hod-requests', requireRole("department_head"), async (req, res) => {
     const queues = await persistence.getQueuesWithCountsOut();
     await renderPage(req, res, 'hod-requests', {
         title: "Review Requests", active: "review", requests, queues, filters,
-        categories: CATEGORIES, semesters: SEMESTERS, statuses: STATUSES
+        categories: CATEGORIES, semesters: business.semesterList(), statuses: STATUSES
     });
 });
 
@@ -746,7 +770,7 @@ app.post("/hod/request/:id", requireRole("department_head"), async (req, res) =>
         if (status !== "Approved" && status !== "Rejected") {
             return showError(req, res, 400, "Status must be Approved or Rejected.");
         }
-        const updated = await business.processRequest(req.params.id, status, note, request.studentEmail);
+        const updated = await business.processRequest(req.params.id, status, note);
         if (!updated) {
             // the student cancelled it or it was decided in the meantime; nothing was changed
             const current = await persistence.getRequestById(req.params.id);
