@@ -9,6 +9,18 @@ const BCRYPT_ROUNDS = 10;
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_TOO_SHORT = `The password must be at least ${PASSWORD_MIN_LENGTH} characters long.`;
 
+// A verification link works for 24 hours, a password reset link for 1 hour
+const VERIFICATION_TOKEN_HOURS = 24;
+const RESET_TOKEN_HOURS = 1;
+
+/**
+ * SHA-256 of a token. Only the hash of a reset token is stored, so someone who can read
+ * the database (or a backup) cannot use the reset links that are still valid.
+ */
+function hashToken(token) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
+
 /**
  * Registers a new user after validating inputs, hashing the password with bcrypt,
  * and generating a verification token. Stores the user in the database
@@ -36,6 +48,7 @@ async function registerUser(username, email, password, repeatPassword, college, 
             accountType: "student",
             verified: false,
             verificationToken,
+            verificationTokenExpires: new Date(Date.now() + VERIFICATION_TOKEN_HOURS * 60 * 60 * 1000),
             college,
             profilePic
         };
@@ -52,7 +65,8 @@ async function registerUser(username, email, password, repeatPassword, college, 
 }
 
 /**
- * Verifies a user by matching the verification token with a stored record.
+ * Verifies a user by matching the verification token with a stored record
+ * (only if the link is not older than 24 hours).
  */
 async function verifyUser(token) {
     return await persistence.verifyUserToken(token);
@@ -80,8 +94,9 @@ async function generateResetToken(email) {
     }
 
     const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
-    await persistence.storeResetToken(email, token, expiresAt);
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_HOURS * 60 * 60 * 1000);
+    // the link gets the token, the database only its hash
+    await persistence.storeResetToken(email, hashToken(token), expiresAt);
 
     return token;
 }
@@ -98,7 +113,7 @@ async function resetPassword(token, newPassword, repeatPassword) {
         return { success: false, message: PASSWORD_TOO_SHORT };
     }
 
-    const user = await persistence.getUserByResetToken(token);
+    const user = token ? await persistence.getUserByResetToken(hashToken(token)) : null;
     if (!user) {
         return { success: false, message: "Invalid or expired reset link. Please request a new one." };
     }
@@ -206,6 +221,7 @@ async function getRequestsByStudent(email) {
 module.exports = {
     PASSWORD_MIN_LENGTH,
     PASSWORD_TOO_SHORT,
+    hashToken,
     registerUser,
     authenticateUser,
     verifyUser,

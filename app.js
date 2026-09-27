@@ -416,13 +416,13 @@ app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUp
 app.get("/verify-email", async (req, res) => {
     const token = text(req.query.token);
     if (!token) {
-        return res.redirect("/register?error=The verification link is invalid or has already been used.");
+        return res.redirect("/register?error=The verification link is invalid, has expired or has already been used.");
     }
     const success = await business.verifyUser(token);
     if (success) {
         res.redirect("/login?msg=Email verified. You can now log in.");
     } else {
-        res.redirect("/register?error=The verification link is invalid or has already been used.");
+        res.redirect("/register?error=The verification link is invalid, has expired or has already been used.");
     }
 });
 
