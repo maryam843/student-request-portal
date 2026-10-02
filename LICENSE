@@ -30,5 +30,4 @@ Copyright (c) 2022-2023 creativeLabs Łukasz Holeczek and The CoreUI Team.
 The files under public/css and public/vendors/@coreui are CoreUI files and
 keep their own copyright headers. The CoreUI icon sprite
 (public/vendors/@coreui/icons/svg/free.svg) is from CoreUI Icons Free
-(icons: CC BY 4.0). public/vendors/simplebar is SimpleBar by Adrien Denat
-(MIT). The MIT license above applies to my own code, not to these files.
+(icons: CC BY 4.0). The MIT license above applies to my own code, not to these files.

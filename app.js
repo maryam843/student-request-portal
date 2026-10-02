@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const { csrfSync } = require('csrf-sync');
 const MongoStore = require('connect-mongo');
 const business = require('./business');
 const path = require('path');
@@ -10,11 +12,44 @@ const app = express();
 const hbs = require("hbs");
 const persistence = require("./persistence");
 const crypto = require('crypto');
+const fs = require('fs');
 
 
 // View Engine Setup
 app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'views'));
+
+const isProduction = process.env.NODE_ENV === 'production';
+const port = process.env.PORT || 8000;
+// Address of the app in the links that would be e-mailed (verification, password reset)
+const baseUrl = (process.env.BASE_URL || `http://localhost:${port}`).replace(/\/+$/, '');
+
+// In production the app runs behind an HTTPS proxy (e.g. a hosting platform): trust its
+// X-Forwarded-Proto header so Express knows the request was HTTPS and sends the secure cookie
+if (isProduction) {
+    app.set('trust proxy', 1);
+}
+
+// Security headers. The Content Security Policy only allows scripts, styles and images
+// from this server (the CoreUI files are in public/vendors), so an injected <script> or
+// onclick="..." does not run. frame-ancestors 'none' stops other sites from showing the
+// app in a frame (clickjacking).
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'"],
+            imgSrc: ["'self'", "data:"],
+            formAction: ["'self'"],
+            frameAncestors: ["'none'"],
+            // only useful behind HTTPS; on http://localhost it would break the page
+            upgradeInsecureRequests: isProduction ? [] : null
+        }
+    },
+    frameguard: { action: 'deny' },
+    strictTransportSecurity: isProduction
+}));
 
 // Middleware Setup
 // "simple" parsing: ?email[$ne]=x stays a plain text key and does not become a MongoDB operator
@@ -31,21 +66,58 @@ if (!process.env.SESSION_SECRET) {
 
 // Login sessions: the browser only gets a random session id in a cookie,
 // the session data (who is logged in) is stored in MongoDB.
+const sessionStore = MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    dbName: persistence.dbName,
+    collectionName: 'sessions'
+});
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        dbName: persistence.dbName,
-        collectionName: 'sessions'
-    }),
+    store: sessionStore,
     cookie: {
         httpOnly: true,
         sameSite: 'lax',
+        // only sent over HTTPS in production; on http://localhost it must be false or login breaks
+        secure: isProduction,
         maxAge: 1000 * 60 * 60 * 2
     }
 }));
+
+// CSRF protection: every form gets a secret token that is also kept in the session.
+// A POST without the right token (e.g. a form on another website that posts to this
+// app with the user's cookie) is refused with 403.
+const { csrfSynchronisedProtection, generateToken } = csrfSync({
+    size: 32,
+    getTokenFromRequest: (req) => req.body && req.body._csrf
+});
+
+// Forms with a file are read by Multer inside the route, so their token is checked
+// there (checkCsrfAfterUpload). Every other POST is checked here.
+const FILE_FORMS = ['/register', '/upload-profile'];
+
+app.use((req, res, next) => {
+    // a function, so a token (and a session) is only created when a page shows a form
+    res.locals.csrfToken = () => generateToken(req);
+    if (FILE_FORMS.includes(req.path)) {
+        return next();
+    }
+    csrfSynchronisedProtection(req, res, next);
+});
+
+/**
+ * Check the CSRF token of a form with a file (after Multer has read the form);
+ * if the token is wrong, delete the uploaded file again
+ */
+function checkCsrfAfterUpload(req, res, next) {
+    csrfSynchronisedProtection(req, res, (err) => {
+        if (err && req.file) {
+            deleteUpload(req.file.filename);
+        }
+        next(err);
+    });
+}
 
 /**
  * Return the value only if it is plain text (not an array or object), otherwise ""
@@ -71,7 +143,8 @@ function noCache(res) {
 
 // The choices in the request form and in the HoD filters
 const CATEGORIES = ["Course Advice", "Attendance", "Registration", "Major Change"];
-const SEMESTERS = ["Fall 2023", "Fall 2024", "Fall 2025", "Spring 2023", "Spring 2024", "Spring 2025", "Winter 2023", "Winter 2024", "Winter 2025"];
+// the values of the college list on the register page
+const COLLEGES = ["Business", "IT", "Engineering", "General Education", "Health"];
 const STATUSES = ["Pending", "Approved", "Rejected", "Cancelled"];
 
 // Left menu for each account type; "key" marks the menu item of the page that is open
@@ -156,8 +229,6 @@ function requireRole(accountType) {
     };
 }
 
-const port = process.env.PORT || 8000;
-
 /**
  * Allow at most 10 tries per 15 minutes from the same IP address, then show a message
  * on the same page. Used on login, register and forgot password to slow down password guessing
@@ -217,6 +288,14 @@ const upload = multer({
 });
 
 /**
+ * Delete a file from the uploads folder (only the file name is used, so it cannot point
+ * outside the folder); a file that is already gone is ignored
+ */
+function deleteUpload(fileName) {
+    fs.unlink(path.join(__dirname, 'uploads', path.basename(fileName)), () => {});
+}
+
+/**
  * Run the upload and keep the error message (too big, wrong type) instead of crashing
  */
 function uploadProfilePic(req, res, next) {
@@ -249,8 +328,10 @@ hbs.registerHelper('avatarSrc', function (profilePic) {
 hbs.registerHelper('avatar', function (profilePic, cssClass, size) {
     const src = profilePic ? '/uploads/' + profilePic : DEFAULT_AVATAR;
     const sizeAttrs = typeof size === 'number' ? ` width="${size}" height="${size}"` : '';
+    // public/js/app.js swaps in the data-fallback picture (no inline onerror, see the CSP above)
+    const fallback = profilePic ? ` data-fallback="${DEFAULT_AVATAR}"` : '';
     return new hbs.SafeString(
-        `<img class="${hbs.Utils.escapeExpression(typeof cssClass === 'string' ? cssClass : '')}" src="${hbs.Utils.escapeExpression(src)}"${sizeAttrs} alt="Profile picture" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR}'">`
+        `<img class="${hbs.Utils.escapeExpression(typeof cssClass === 'string' ? cssClass : '')}" src="${hbs.Utils.escapeExpression(src)}"${sizeAttrs}${fallback} alt="Profile picture">`
     );
 });
 
@@ -285,13 +366,18 @@ app.get('/profile', requireLogin, async (req, res) => {
 /**
  * Handle profile picture upload request (changes the picture of the logged-in user)
  */
-app.post('/upload-profile', requireLogin, uploadProfilePic, async (req, res) => {
+app.post('/upload-profile', requireLogin, uploadProfilePic, checkCsrfAfterUpload, async (req, res) => {
     if (req.uploadError) {
         flash(req, "danger", req.uploadError);
     } else if (!req.file) {
         flash(req, "danger", "Please choose a picture first.");
     } else {
+        const user = await persistence.getUserByEmail(req.session.user.email);
         await persistence.updateProfilePic(req.session.user.email, req.file.filename);
+        // the old picture is not used any more
+        if (user && user.profilePic) {
+            deleteUpload(user.profilePic);
+        }
         flash(req, "success", "Profile picture updated.");
     }
     res.redirect("/profile");
@@ -301,13 +387,19 @@ app.post('/upload-profile', requireLogin, uploadProfilePic, async (req, res) => 
 /**
  * Handle user registration
  */
-app.post('/register', limitTries('register'), uploadProfilePic, async (req, res) => {
+app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUpload, async (req, res) => {
     const [name, email, password, confirmPassword, college] =
         ['name', 'email', 'password', 'confirmPassword', 'college'].map(field => text(req.body[field]));
     const profilePic = req.file ? req.file.filename : null;
 
-    // show the form again with the error; the typed name, email and college are kept
-    const showForm = (error) => res.status(400).render('register', { error, form: { name, email, college } });
+    // show the form again with the error; the typed name, email and college are kept.
+    // The uploaded picture is deleted, otherwise it would stay in uploads/ without an account.
+    const showForm = (error) => {
+        if (req.file) {
+            deleteUpload(req.file.filename);
+        }
+        return res.status(400).render('register', { error, form: { name, email, college } });
+    };
 
     try {
         if (req.uploadError) {
@@ -318,8 +410,16 @@ app.post('/register', limitTries('register'), uploadProfilePic, async (req, res)
             return showForm("Please fill in your name, email and password.");
         }
 
+        if (!COLLEGES.includes(college)) {
+            return showForm("Please choose a college from the list.");
+        }
+
         if (password !== confirmPassword) {
             return showForm("The passwords do not match.");
+        }
+
+        if (password.length < business.PASSWORD_MIN_LENGTH) {
+            return showForm(business.PASSWORD_TOO_SHORT);
         }
 
         const existingUser = await business.getUserByEmail(email);
@@ -330,10 +430,10 @@ app.post('/register', limitTries('register'), uploadProfilePic, async (req, res)
         const userData = await business.registerUser(name, email, password, confirmPassword, college, profilePic);
 
         if (!userData) {
-            return showForm("Registration failed. Check the email address and try again.");
+            return showForm("Registration failed. Check the email address and try again, or log in if you already have an account.");
         }
 
-        logEmailLink(userData.email, "Verification link", userData.verificationLink);
+        logEmailLink(userData.email, "Verification link", `${baseUrl}/verify-email?token=${userData.verificationToken}`);
 
         return res.redirect("/login?msg=Account created. Open the verification link (printed in the server console), then log in.");
     } catch (error) {
@@ -349,13 +449,13 @@ app.post('/register', limitTries('register'), uploadProfilePic, async (req, res)
 app.get("/verify-email", async (req, res) => {
     const token = text(req.query.token);
     if (!token) {
-        return res.redirect("/register?error=The verification link is invalid or has already been used.");
+        return res.redirect("/register?error=The verification link is invalid, has expired or has already been used.");
     }
     const success = await business.verifyUser(token);
     if (success) {
         res.redirect("/login?msg=Email verified. You can now log in.");
     } else {
-        res.redirect("/register?error=The verification link is invalid or has already been used.");
+        res.redirect("/register?error=The verification link is invalid, has expired or has already been used.");
     }
 });
 
@@ -377,7 +477,7 @@ app.post('/forgot-password', limitTries('forgot-password'), async (req, res) => 
         const user = await business.getUserByEmail(email);
         if (user) {
             const token = await business.generateResetToken(email);
-            const resetLink = `http://localhost:${port}/reset-password?token=${token}`;
+            const resetLink = `${baseUrl}/reset-password?token=${token}`;
             logEmailLink(email, "Reset link", resetLink);
         }
         return res.render('forgot-password', { message });
@@ -534,7 +634,7 @@ app.get("/student-requests", requireRole("student"), async (req, res) => {
  * Render the form for student to submit a request
  */
 app.get("/student-request", requireRole("student"), async (req, res) => {
-    await renderPage(req, res, "request_form", { title: "New Request", active: "new-request", semesters: SEMESTERS, categories: CATEGORIES, form: {} });
+    await renderPage(req, res, "request_form", { title: "New Request", active: "new-request", semesters: business.semesterList(), categories: CATEGORIES, form: {} });
 });
 
 /**
@@ -552,10 +652,10 @@ app.post("/student-request", requireRole("student"), async (req, res) => {
         description: text(req.body.description)
     };
 
-    if (!SEMESTERS.includes(data.semester) || !CATEGORIES.includes(data.category) || !data.description.trim()) {
+    if (!business.semesterList().includes(data.semester) || !CATEGORIES.includes(data.category) || !data.description.trim()) {
         res.status(400);
         return renderPage(req, res, "request_form", {
-            title: "New Request", active: "new-request", semesters: SEMESTERS, categories: CATEGORIES, form: data,
+            title: "New Request", active: "new-request", semesters: business.semesterList(), categories: CATEGORIES, form: data,
             flash: { type: "danger", text: "Please choose a semester and a category and write a description." }
         });
     }
@@ -601,7 +701,7 @@ app.get('/hod-requests', requireRole("department_head"), async (req, res) => {
     const queues = await persistence.getQueuesWithCountsOut();
     await renderPage(req, res, 'hod-requests', {
         title: "Review Requests", active: "review", requests, queues, filters,
-        categories: CATEGORIES, semesters: SEMESTERS, statuses: STATUSES
+        categories: CATEGORIES, semesters: business.semesterList(), statuses: STATUSES
     });
 });
 
@@ -670,11 +770,12 @@ app.post("/hod/request/:id", requireRole("department_head"), async (req, res) =>
         if (status !== "Approved" && status !== "Rejected") {
             return showError(req, res, 400, "Status must be Approved or Rejected.");
         }
-        if (request.status !== "Pending") {
-            return showError(req, res, 400, `This request is already ${request.status}.`);
+        const updated = await business.processRequest(req.params.id, status, note);
+        if (!updated) {
+            // the student cancelled it or it was decided in the meantime; nothing was changed
+            const current = await persistence.getRequestById(req.params.id);
+            return showError(req, res, 409, `This request was already ${current.status.toLowerCase()}, so it was not changed.`);
         }
-
-        await business.processRequest(req.params.id, status, note, request.studentEmail);
         flash(req, "success", `Request ${status.toLowerCase()}.`);
         res.redirect(`/hod-requests`);
     } catch (error) {
@@ -740,6 +841,9 @@ app.use(async (req, res) => {
  * (Express 5 also sends errors from async routes here)
  */
 app.use(async (err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        return showError(req, res, 403, "This form has expired. Please go back, reload the page and try again.");
+    }
     console.error("Unexpected error:", err);
     try {
         await showError(req, res, 500, "Something went wrong. Please try again.");
@@ -751,11 +855,20 @@ app.use(async (err, req, res, next) => {
 /**
  * Create the database indexes, then start the server on the configured port
  */
-persistence.createIndexes()
-    .then(() => {
-        app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
-    })
-    .catch((err) => {
-        console.error("Could not prepare the database (is MongoDB running? are there duplicate emails?):", err.message);
-        process.exit(1);
-    });
+function start() {
+    return persistence.createIndexes()
+        .then(() => {
+            app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+        })
+        .catch((err) => {
+            console.error("Could not prepare the database (is MongoDB running? are there duplicate emails?):", err.message);
+            process.exit(1);
+        });
+}
+
+// The tests import the app without starting the server; "npm start" runs this file directly
+if (require.main === module) {
+    start();
+}
+
+module.exports = { app, start, sessionStore };

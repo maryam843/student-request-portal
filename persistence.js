@@ -1,5 +1,4 @@
 const { MongoClient, ObjectId } = require("mongodb");
-const uri = process.env.MONGODB_URI;
 const dbName = "course_management";
 let client;
 
@@ -9,6 +8,8 @@ let client;
  */
 async function connectDB() {
     if (!client) {
+        // read when connecting (not when this file is loaded), so the tests and the demo can set it first
+        const uri = process.env.MONGODB_URI;
         if (!uri) {
             throw new Error("MONGODB_URI is not set. Copy .env.example to .env and fill it in.");
         }
@@ -16,6 +17,17 @@ async function connectDB() {
         await client.connect();
     }
     return client.db(dbName);
+}
+
+/**
+ * Closes the database connection (used by the tests when they finish).
+ * @returns {Promise} Resolves once the connection is closed.
+ */
+async function closeDB() {
+    if (client) {
+        await client.close();
+        client = null;
+    }
 }
 
 /**
@@ -65,19 +77,19 @@ async function getUserByEmail(email) {
 }
 
 /**
- * Stores a password reset token for a user.
+ * Stores the hash of a password reset token for a user.
  * @param {string} email - The email of the user.
- * @param {string} token - The reset token.
+ * @param {string} tokenHash - The SHA-256 hash of the reset token.
  * @param {Date} expiresAt - The expiration date of the token.
  * @returns {Promise} Resolves once the token is stored.
  */
-async function storeResetToken(email, token, expiresAt) {
+async function storeResetToken(email, tokenHash, expiresAt) {
     const db = await connectDB();
     await db.collection('users').updateOne(
       { email: email.toLowerCase() },
       {
         $set: {
-          resetToken: token,
+          resetToken: tokenHash,
           resetTokenExpires: expiresAt,
         },
       }
@@ -85,14 +97,14 @@ async function storeResetToken(email, token, expiresAt) {
 }
 
 /**
- * Finds the user with this reset token, if the token has not expired yet.
- * @param {string} token - The reset token from the link.
+ * Finds the user with this reset token hash, if the token has not expired yet.
+ * @param {string} tokenHash - The SHA-256 hash of the token from the link.
  * @returns {Promise} Resolves with the user or null.
  */
-async function getUserByResetToken(token) {
+async function getUserByResetToken(tokenHash) {
     const db = await connectDB();
     return await db.collection('users').findOne({
-        resetToken: token,
+        resetToken: tokenHash,
         resetTokenExpires: { $gt: new Date() }
     });
 }
@@ -109,20 +121,19 @@ async function updateProfilePic(email, profilePic) {
 }
 
 /**
- * Verifies a user token and updates the user as verified.
+ * Verifies a user token and updates the user as verified, if the token has not
+ * expired. The token is removed, so a link works only once.
  * @param {string} token - The token to verify.
  * @returns {Promise} Resolves with true if successful, otherwise false.
  */
 async function verifyUserToken(token) {
     try {
         const db = await connectDB();
-        const user = await db.collection('users').findOne({ verificationToken: token });
-        if (!user) return false;
-        await db.collection('users').updateOne(
-            { verificationToken: token },
-            { $set: { verified: true }, $unset: { verificationToken: "" } }
+        const result = await db.collection('users').updateOne(
+            { verificationToken: token, verificationTokenExpires: { $gt: new Date() } },
+            { $set: { verified: true }, $unset: { verificationToken: "", verificationTokenExpires: "" } }
         );
-        return true;
+        return result.modifiedCount === 1;
     } catch {
         return false;
     }
@@ -206,16 +217,18 @@ async function getRequestById(requestId) {
 }
 
 /**
- * Resolves or rejects a request.
+ * Resolves or rejects a request, but only while it is still Pending. The check and the
+ * update are one database operation, so a request the student cancels at the same
+ * moment cannot be approved afterwards.
  * @param {string} id - The ID of the request.
  * @param {string} status - The status to update to.
  * @param {string} note - The note to include.
- * @returns {Promise} Resolves with the update result.
+ * @returns {Promise} Resolves with the update result (matchedCount is 0 if it was not Pending).
  */
 async function updateRequestStatus(id, status, note) {
     const db = await connectDB();
     return await db.collection("requests").updateOne(
-        { _id: new ObjectId(id) },
+        { _id: new ObjectId(id), status: "Pending" },
         { $set: { status, note, resolvedAt: new Date(), studentNotified: false } }
     );
 }
@@ -340,6 +353,7 @@ async function getQueuesWithCountsOut() {
 module.exports = {
     dbName,
     connectDB,
+    closeDB,
     createIndexes,
     isValidId,
     createRegistration,

@@ -1,6 +1,7 @@
 <div class="card mb-4">
   <div class="card-body">
     <form action="/student-request" method="POST">
+      <input type="hidden" name="_csrf" value="{{csrfToken}}">
       <div class="mb-3">
         <label for="semester" class="form-label">Semester</label>
         <select id="semester" name="semester" class="form-select" required>

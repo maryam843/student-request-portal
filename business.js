@@ -5,19 +5,33 @@ const persistence = require('./persistence');
 // bcrypt cost factor: each +1 doubles the time needed to hash (and to guess) a password
 const BCRYPT_ROUNDS = 10;
 
+// Shortest password allowed when registering or resetting a password
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_TOO_SHORT = `The password must be at least ${PASSWORD_MIN_LENGTH} characters long.`;
+
+// A verification link works for 24 hours, a password reset link for 1 hour
+const VERIFICATION_TOKEN_HOURS = 24;
+const RESET_TOKEN_HOURS = 1;
+
+/**
+ * SHA-256 of a token. Only the hash of a reset token is stored, so someone who can read
+ * the database (or a backup) cannot use the reset links that are still valid.
+ */
+function hashToken(token) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
+
 /**
  * Registers a new user after validating inputs, hashing the password with bcrypt,
  * and generating a verification token. Stores the user in the database
- * and returns the verification link.
+ * and returns the email and the verification token (app.js builds the link).
  */
 async function registerUser(username, email, password, repeatPassword, college, profilePic) {
     if (!password || password !== repeatPassword) return false;
+    if (password.length < PASSWORD_MIN_LENGTH) return false;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return false;
-
-    const existingUser = await persistence.getUserByEmail(email);
-    if (existingUser) return false;
 
     try {
         const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
@@ -31,15 +45,18 @@ async function registerUser(username, email, password, repeatPassword, college, 
             accountType: "student",
             verified: false,
             verificationToken,
+            verificationTokenExpires: new Date(Date.now() + VERIFICATION_TOKEN_HOURS * 60 * 60 * 1000),
             college,
             profilePic
         };
 
-        await persistence.createRegistration(newUser);
+        // fails (false) if the email is already registered: users.email has a unique index
+        const created = await persistence.createRegistration(newUser);
+        if (!created) return false;
 
         return {
             email,
-            verificationLink: `http://localhost:8000/verify-email?token=${verificationToken}`
+            verificationToken
         };
     } catch (error) {
         return false;
@@ -47,7 +64,8 @@ async function registerUser(username, email, password, repeatPassword, college, 
 }
 
 /**
- * Verifies a user by matching the verification token with a stored record.
+ * Verifies a user by matching the verification token with a stored record
+ * (only if the link is not older than 24 hours).
  */
 async function verifyUser(token) {
     return await persistence.verifyUserToken(token);
@@ -75,8 +93,9 @@ async function generateResetToken(email) {
     }
 
     const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
-    await persistence.storeResetToken(email, token, expiresAt);
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_HOURS * 60 * 60 * 1000);
+    // the link gets the token, the database only its hash
+    await persistence.storeResetToken(email, hashToken(token), expiresAt);
 
     return token;
 }
@@ -89,8 +108,11 @@ async function resetPassword(token, newPassword, repeatPassword) {
     if (!newPassword || newPassword !== repeatPassword) {
         return { success: false, message: "The passwords do not match." };
     }
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+        return { success: false, message: PASSWORD_TOO_SHORT };
+    }
 
-    const user = await persistence.getUserByResetToken(token);
+    const user = token ? await persistence.getUserByResetToken(hashToken(token)) : null;
     if (!user) {
         return { success: false, message: "Invalid or expired reset link. Please request a new one." };
     }
@@ -106,6 +128,18 @@ async function resetPassword(token, newPassword, repeatPassword) {
  */
 async function getUserByEmail(email) {
     return await persistence.getUserByEmail(email);
+}
+
+/**
+ * The semesters students can choose and the HoD can filter by: from two years ago to next
+ * year, in the order they happen, e.g. in 2026: "Winter 2024", "Spring 2024", "Fall 2024", ..., "Fall 2027".
+ */
+function semesterList(year = new Date().getFullYear()) {
+    const semesters = [];
+    for (let y = year - 2; y <= year + 1; y++) {
+        semesters.push(`Winter ${y}`, `Spring ${y}`, `Fall ${y}`);
+    }
+    return semesters;
 }
 
 // Qatar weekend: Friday (5) and Saturday (6) in JavaScript's getDay()
@@ -176,11 +210,12 @@ async function createRequest(data) {
 }
 
 /**
- * Updates the request status and adds a note.
- * Intended for HoD or admin processing of student requests.
+ * Updates the request status and adds a note (Head of Department decision).
+ * Returns false if the request was no longer Pending (already cancelled or decided).
  */
-async function processRequest(requestId, status, note, studentEmail) {
-    await persistence.updateRequestStatus(requestId, status, note);
+async function processRequest(requestId, status, note) {
+    const result = await persistence.updateRequestStatus(requestId, status, note);
+    return result.matchedCount === 1;
 }
 
 /**
@@ -195,6 +230,9 @@ async function getRequestsByStudent(email) {
 }
 
 module.exports = {
+    PASSWORD_MIN_LENGTH,
+    PASSWORD_TOO_SHORT,
+    hashToken,
     registerUser,
     authenticateUser,
     verifyUser,
@@ -203,6 +241,7 @@ module.exports = {
     resetPassword,
     createRequest,
     processRequest,
+    semesterList,
     calculateEstimatedCompletionTime,
     getRequestsByStudent
 };

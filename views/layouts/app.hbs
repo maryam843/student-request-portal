@@ -25,6 +25,7 @@
       {{/each}}
       <li class="nav-item">
         <form action="/logout" method="POST">
+          <input type="hidden" name="_csrf" value="{{csrfToken}}">
           <button type="submit" class="nav-link">
             <svg class="nav-icon">
               <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use>
@@ -37,8 +38,7 @@
   <div class="wrapper d-flex flex-column min-vh-100 bg-light">
     <header class="header header-sticky mb-4">
       <div class="container-fluid">
-        <button class="header-toggler px-0 me-3 d-md-none" type="button" aria-label="Open menu" aria-controls="sidebar"
-          onclick="coreui.Sidebar.getOrCreateInstance(document.querySelector('#sidebar')).toggle()">
+        <button class="header-toggler px-0 me-3 d-md-none" type="button" aria-label="Open menu" aria-controls="sidebar">
           <svg class="icon icon-lg">
             <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-menu"></use>
           </svg>
@@ -68,6 +68,7 @@
                 </svg> My Profile</a>
               <div class="dropdown-divider"></div>
               <form action="/logout" method="POST">
+                <input type="hidden" name="_csrf" value="{{csrfToken}}">
                 <button type="submit" class="dropdown-item">
                   <svg class="icon me-2">
                     <use xlink:href="/vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use>
@@ -90,6 +91,7 @@
   </div>
 
   <script src="/vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 
 </html>
