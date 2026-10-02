@@ -85,9 +85,9 @@ npm start
 npm test
 ```
 
-The tests use Node's built-in test runner (`node:test`), supertest and an in-memory MongoDB with the demo data, so they do not touch a real database. The first run downloads MongoDB (about 100 MB). They need Node.js 22, or Node.js 20 on Linux or macOS (GitHub Actions runs them on Node 20 for every push and pull request).
+The tests use Node's built-in test runner (`node:test`), supertest and an in-memory MongoDB with the demo data, so they do not touch a real database. The first run downloads MongoDB (about 100 MB). They need Node.js 20.10 or newer on Windows, Linux or macOS (GitHub Actions runs them on Node 20 for every push and pull request). `npm test` lists the test files by name, so it does not depend on the shell, and runs them one after another because they share the `uploads/` folder.
 
-On 27 September 2026 there were 62 tests in 11 files, and all of them passed. They cover:
+On 3 October 2026 there were 62 tests in 11 files, and all of them passed. They cover:
 
 - the estimated completion time (working hours, weekend, before 9am, long queue), in Qatar time
 - login, wrong password, unverified account, logout, and a new session id after login
@@ -119,14 +119,14 @@ I used Claude Code as an AI assistant to help audit and refactor the code; I rev
 
 | 2025 flaw | Risk | 2026 fix | Commit |
 |---|---|---|---|
-| No security headers | An injected script could run; another site could show the app in a frame and trick users into clicking (clickjacking) | helmet with a Content Security Policy (scripts only from this server) and `frame-ancestors 'none'`; the two inline scripts moved to `public/js/app.js` | [def425e](https://github.com/maryam843/student-request-portal/commit/def425e) |
-| No CSRF tokens (only `SameSite=Lax`) | Another website could send a form (cancel, approve, logout) with the user's login cookie | A CSRF token in every POST form (csrf-sync); without it the server answers 403 | [47e5301](https://github.com/maryam843/student-request-portal/commit/47e5301) |
-| Any password length accepted | Very short passwords are easy to guess | At least 8 characters, checked on the server when registering and resetting | [73f9540](https://github.com/maryam843/student-request-portal/commit/73f9540) |
-| The HoD decision checked "Pending" and then updated in two steps | A request the student cancelled at the same moment could still become Approved | One update with the filter `{_id, status: "Pending"}`; otherwise "already cancelled or decided" | [f24084a](https://github.com/maryam843/student-request-portal/commit/f24084a) |
-| Reset tokens stored as plain text; verification links never expired | Anyone who can read the database could reset passwords; old verification links worked forever | Only the SHA-256 hash of a reset token is stored; verification links expire after 24 hours; both work once | [a40dc89](https://github.com/maryam843/student-request-portal/commit/a40dc89) |
-| Login cookie never marked `Secure`; verification link hard-coded to `localhost:8000` | On a real HTTPS server the cookie could be sent over plain HTTP; links pointed to the wrong address | In production: `Secure` cookie and `trust proxy`; both links use `BASE_URL` (or `PORT`) | [34505a8](https://github.com/maryam843/student-request-portal/commit/34505a8) |
-| Uploaded files left behind; college and semester lists not checked properly | `uploads/` fills with unused files; any college value could be saved; the semester list stopped at 2025 | Unused pictures are deleted, the college is checked against the list, semesters come from the current year | [738fd5f](https://github.com/maryam843/student-request-portal/commit/738fd5f) |
-| No automated tests | Changes could break login or access rules without anyone noticing | 62 tests and GitHub Actions on every push | [61c8a80](https://github.com/maryam843/student-request-portal/commit/61c8a80), [915a28f](https://github.com/maryam843/student-request-portal/commit/915a28f) |
+| No security headers | An injected script could run; another site could show the app in a frame and trick users into clicking (clickjacking) | helmet with a Content Security Policy (scripts only from this server) and `frame-ancestors 'none'`; the two inline scripts moved to `public/js/app.js` | [7ca8413](https://github.com/maryam843/student-request-portal/commit/7ca8413) |
+| No CSRF tokens (only `SameSite=Lax`) | Another website could send a form (cancel, approve, logout) with the user's login cookie | A CSRF token in every POST form (csrf-sync); without it the server answers 403 | [51b3d63](https://github.com/maryam843/student-request-portal/commit/51b3d63) |
+| Any password length accepted | Very short passwords are easy to guess | At least 8 characters, checked on the server when registering and resetting | [65d7738](https://github.com/maryam843/student-request-portal/commit/65d7738) |
+| The HoD decision checked "Pending" and then updated in two steps | A request the student cancelled at the same moment could still become Approved | One update with the filter `{_id, status: "Pending"}`; otherwise "already cancelled or decided" | [91b162b](https://github.com/maryam843/student-request-portal/commit/91b162b) |
+| Reset tokens stored as plain text; verification links never expired | Anyone who can read the database could reset passwords; old verification links worked forever | Only the SHA-256 hash of a reset token is stored; verification links expire after 24 hours; both work once | [420f660](https://github.com/maryam843/student-request-portal/commit/420f660) |
+| Login cookie never marked `Secure`; verification link hard-coded to `localhost:8000` | On a real HTTPS server the cookie could be sent over plain HTTP; links pointed to the wrong address | In production: `Secure` cookie and `trust proxy`; both links use `BASE_URL` (or `PORT`) | [e4b1f58](https://github.com/maryam843/student-request-portal/commit/e4b1f58) |
+| Uploaded files left behind; college and semester lists not checked properly | `uploads/` fills with unused files; any college value could be saved; the semester list stopped at 2025 | Unused pictures are deleted, the college is checked against the list, semesters come from the current year | [72172ff](https://github.com/maryam843/student-request-portal/commit/72172ff) |
+| No automated tests | Changes could break login or access rules without anyone noticing | 62 tests and GitHub Actions on every push | [4cd6783](https://github.com/maryam843/student-request-portal/commit/4cd6783), [6b1f66b](https://github.com/maryam843/student-request-portal/commit/6b1f66b) |
 
 ## Limitations
 

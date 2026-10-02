@@ -16,7 +16,7 @@
     "dev": "node --watch app.js",
     "demo": "node scripts/demo.js",
     "seed": "node scripts/seed.js",
-    "test": "node --test --test-timeout=60000 test/*.test.js"
+    "test": "node --test --test-concurrency=1 --test-timeout=60000 test/access.test.js test/auth.test.js test/cleanup.test.js test/csrf.test.js test/decision.test.js test/eta.test.js test/password.test.js test/production.test.js test/security.test.js test/tokens.test.js test/upload.test.js"
   },
   "engines": {
     "node": ">=18"
