@@ -14,8 +14,8 @@ const VERIFICATION_TOKEN_HOURS = 24;
 const RESET_TOKEN_HOURS = 1;
 
 /**
- * SHA-256 of a token. Only the hash of a reset token is stored, so someone who can read
- * the database (or a backup) cannot use the reset links that are still valid.
+ * SHA-256 of a token. Only the hash of a reset or verification token is stored, so someone
+ * who can read the database (or a backup) cannot use the links that are still valid.
  */
 function hashToken(token) {
     return crypto.createHash('sha256').update(token).digest('hex');
@@ -44,7 +44,8 @@ async function registerUser(username, email, password, repeatPassword, college, 
             // everyone who registers is a student; the HoD account is created by scripts/seed.js
             accountType: "student",
             verified: false,
-            verificationToken,
+            // the link gets the token, the database only its hash
+            verificationToken: hashToken(verificationToken),
             verificationTokenExpires: new Date(Date.now() + VERIFICATION_TOKEN_HOURS * 60 * 60 * 1000),
             college,
             profilePic
@@ -64,11 +65,11 @@ async function registerUser(username, email, password, repeatPassword, college, 
 }
 
 /**
- * Verifies a user by matching the verification token with a stored record
+ * Verifies a user by matching the hash of the verification token with a stored record
  * (only if the link is not older than 24 hours).
  */
 async function verifyUser(token) {
-    return await persistence.verifyUserToken(token);
+    return await persistence.verifyUserToken(hashToken(token));
 }
 
 /**

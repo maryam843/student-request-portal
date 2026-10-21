@@ -121,16 +121,16 @@ async function updateProfilePic(email, profilePic) {
 }
 
 /**
- * Verifies a user token and updates the user as verified, if the token has not
+ * Marks the user with this verification token hash as verified, if the token has not
  * expired. The token is removed, so a link works only once.
- * @param {string} token - The token to verify.
+ * @param {string} tokenHash - The SHA-256 hash of the token from the link.
  * @returns {Promise} Resolves with true if successful, otherwise false.
  */
-async function verifyUserToken(token) {
+async function verifyUserToken(tokenHash) {
     try {
         const db = await connectDB();
         const result = await db.collection('users').updateOne(
-            { verificationToken: token, verificationTokenExpires: { $gt: new Date() } },
+            { verificationToken: tokenHash, verificationTokenExpires: { $gt: new Date() } },
             { $set: { verified: true }, $unset: { verificationToken: "", verificationTokenExpires: "" } }
         );
         return result.modifiedCount === 1;

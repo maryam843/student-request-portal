@@ -113,6 +113,22 @@ async function registerAndGetToken(email) {
     return link.searchParams.get('token');
 }
 
+test('only the SHA-256 hash of the verification token is stored', async () => {
+    const token = await registerAndGetToken('verify.hash@example.com');
+    assert.match(token, /^[0-9a-f]{40}$/);
+    const user = await db.collection('users').findOne({ email: 'verify.hash@example.com' });
+    assert.notEqual(user.verificationToken, token);
+    assert.equal(user.verificationToken, business.hashToken(token));
+
+    // the stored hash itself is not a working link
+    const withHash = await request(app).get(`/verify-email?token=${user.verificationToken}`);
+    assert.match(decodeURIComponent(withHash.headers.location), /invalid/);
+    assert.equal((await db.collection('users').findOne({ email: 'verify.hash@example.com' })).verified, false);
+
+    const res = await request(app).get(`/verify-email?token=${token}`);
+    assert.match(decodeURIComponent(res.headers.location), /Email verified/);
+});
+
 test('a verification link expires after 24 hours and works once', async () => {
     const token = await registerAndGetToken('verify.once@example.com');
     const user = await db.collection('users').findOne({ email: 'verify.once@example.com' });
