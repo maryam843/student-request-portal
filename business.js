@@ -101,7 +101,8 @@ async function generateResetToken(email) {
 }
 
 /**
- * Resets a user's password using a valid token. Hashes and stores the new password.
+ * Resets a user's password using a valid token. Hashes and stores the new password
+ * and deletes all login sessions of the user.
  * Returns { success, message } so the caller can show the right message.
  */
 async function resetPassword(token, newPassword, repeatPassword) {
@@ -119,6 +120,8 @@ async function resetPassword(token, newPassword, repeatPassword) {
 
     const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await persistence.updatePassword(user.email, hashedPassword);
+    // log the user out everywhere; the reset page then sends them to the login page
+    await persistence.deleteSessionsOfUser(user.email);
 
     return { success: true, message: "Password reset successful." };
 }

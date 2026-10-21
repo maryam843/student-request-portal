@@ -84,6 +84,25 @@ test('an expired reset link is refused', async () => {
     assert.equal((await login(app, 'hod@example.com')).res.headers.location, '/admin-dashboard');
 });
 
+test('a password reset ends the sessions that were open before it', async () => {
+    const browser1 = (await login(app, 'sara@example.com')).agent;
+    const browser2 = (await login(app, 'sara@example.com')).agent;
+    assert.equal((await browser1.get('/student-dashboard')).status, 200);
+    assert.equal(await db.collection('sessions').countDocuments({ 'session.user.email': 'sara@example.com' }), 2);
+
+    const token = await business.generateResetToken('sara@example.com');
+    const res = await resetWith(token, 'NewPassword1');
+    assert.match(decodeURIComponent(res.headers.location), /Password updated/);
+
+    assert.equal(await db.collection('sessions').countDocuments({ 'session.user.email': 'sara@example.com' }), 0);
+    for (const browser of [browser1, browser2]) {
+        const page = await browser.get('/student-dashboard');
+        assert.equal(page.status, 302);
+        assert.match(page.headers.location, /^\/login/);
+    }
+    assert.equal((await login(app, 'sara@example.com', 'NewPassword1')).res.headers.location, '/student-dashboard');
+});
+
 // ---- e-mail verification links ----
 
 /**

@@ -163,6 +163,18 @@ async function updatePassword(email, passwordHash) {
 }
 
 /**
+ * Deletes every login session of a user (all browsers), e.g. after a password reset,
+ * so a session someone else may have taken over stops working.
+ * @param {string} email - The email of the user.
+ * @returns {Promise} Resolves with the number of deleted sessions.
+ */
+async function deleteSessionsOfUser(email) {
+    const db = await connectDB();
+    const result = await db.collection('sessions').deleteMany({ 'session.user.email': email.toLowerCase() });
+    return result.deletedCount;
+}
+
+/**
  * Inserts a new request.
  * @param {Object} request - The request data to insert.
  * @returns {Promise} Resolves with the insert result.
@@ -363,6 +375,7 @@ module.exports = {
     getUserByResetToken,
     insertRequest,
     updatePassword,
+    deleteSessionsOfUser,
     updateProfilePic,
     getRequests,
     cancelRequestById,

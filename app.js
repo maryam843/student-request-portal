@@ -66,10 +66,13 @@ if (!process.env.SESSION_SECRET) {
 
 // Login sessions: the browser only gets a random session id in a cookie,
 // the session data (who is logged in) is stored in MongoDB.
+// stringify: false keeps the session as an object, so the sessions of one user can be
+// found by e-mail and deleted when the password is reset (persistence.deleteSessionsOfUser).
 const sessionStore = MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
     dbName: persistence.dbName,
-    collectionName: 'sessions'
+    collectionName: 'sessions',
+    stringify: false
 });
 app.use(session({
     secret: process.env.SESSION_SECRET,
