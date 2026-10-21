@@ -37,5 +37,8 @@
   "devDependencies": {
     "mongodb-memory-server": "^10.4.3",
     "supertest": "^7.3.0"
+  },
+  "overrides": {
+    "handlebars": "4.7.10"
   }
 }
