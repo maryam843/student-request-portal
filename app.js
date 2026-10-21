@@ -884,10 +884,10 @@ app.use(async (req, res) => {
  * (Express 5 also sends errors from async routes here)
  */
 app.use(async (err, req, res, next) => {
-    // an error after the page was sent (e.g. saving the session) can only be logged
+    // an error after the page was sent (e.g. saving the session): Express's own handler
+    // logs it and closes the connection, a second page cannot be sent
     if (res.headersSent) {
-        console.error("Error after the response was sent:", err);
-        return;
+        return next(err);
     }
     if (err.code === 'EBADCSRFTOKEN') {
         return showError(req, res, 403, "This form has expired. Please go back, reload the page and try again.");
