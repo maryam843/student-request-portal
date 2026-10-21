@@ -51,18 +51,25 @@ function isValidId(id) {
     return typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id);
 }
 
+// MongoDB error code for a value that breaks a unique index (here: an email that is already used)
+const DUPLICATE_KEY = 11000;
+
 /**
  * Registers a new user.
  * @param {Object} user - The user data to insert.
- * @returns {Promise} Resolves with true if inserted successfully, otherwise false.
+ * @returns {Promise} Resolves with true if inserted, false if the email is already registered.
+ * Any other database error is thrown, so it is logged and not mistaken for a used email.
  */
 async function createRegistration(user) {
     try {
         const db = await connectDB();
         const result = await db.collection('users').insertOne(user);
         return result.acknowledged && result.insertedId ? true : false;
-    } catch {
-        return false;
+    } catch (error) {
+        if (error.code === DUPLICATE_KEY) {
+            return false;
+        }
+        throw error;
     }
 }
 

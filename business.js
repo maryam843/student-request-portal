@@ -25,6 +25,8 @@ function hashToken(token) {
  * Registers a new user after validating inputs, hashing the password with bcrypt,
  * and generating a verification token. Stores the user in the database
  * and returns the email and the verification token (app.js builds the link).
+ * Returns false for invalid input or an email that is already registered;
+ * database errors are thrown to the caller.
  */
 async function registerUser(username, email, password, repeatPassword, college, profilePic) {
     if (!password || password !== repeatPassword) return false;
@@ -33,35 +35,31 @@ async function registerUser(username, email, password, repeatPassword, college, 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return false;
 
-    try {
-        const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
-        const verificationToken = crypto.randomBytes(20).toString('hex');
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const verificationToken = crypto.randomBytes(20).toString('hex');
 
-        const newUser = {
-            username,
-            email: email.toLowerCase(),
-            passwordHash: hashedPassword,
-            // everyone who registers is a student; the HoD account is created by scripts/seed.js
-            accountType: "student",
-            verified: false,
-            // the link gets the token, the database only its hash
-            verificationToken: hashToken(verificationToken),
-            verificationTokenExpires: new Date(Date.now() + VERIFICATION_TOKEN_HOURS * 60 * 60 * 1000),
-            college,
-            profilePic
-        };
+    const newUser = {
+        username,
+        email: email.toLowerCase(),
+        passwordHash: hashedPassword,
+        // everyone who registers is a student; the HoD account is created by scripts/seed.js
+        accountType: "student",
+        verified: false,
+        // the link gets the token, the database only its hash
+        verificationToken: hashToken(verificationToken),
+        verificationTokenExpires: new Date(Date.now() + VERIFICATION_TOKEN_HOURS * 60 * 60 * 1000),
+        college,
+        profilePic
+    };
 
-        // fails (false) if the email is already registered: users.email has a unique index
-        const created = await persistence.createRegistration(newUser);
-        if (!created) return false;
+    // fails (false) if the email is already registered: users.email has a unique index
+    const created = await persistence.createRegistration(newUser);
+    if (!created) return false;
 
-        return {
-            email,
-            verificationToken
-        };
-    } catch (error) {
-        return false;
-    }
+    return {
+        email,
+        verificationToken
+    };
 }
 
 /**

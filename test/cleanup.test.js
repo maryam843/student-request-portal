@@ -81,6 +81,28 @@ test('registering the same email twice is caught by the unique index too', async
     assert.equal(second, false);
 });
 
+test('a database error while registering is logged and shown as a general error', async () => {
+    const { Collection } = require('mongodb');
+    const insertOne = Collection.prototype.insertOne;
+    const logged = [];
+    const consoleError = console.error;
+    // any error that is not a duplicate email (code 11000), e.g. the database is not reachable
+    Collection.prototype.insertOne = async () => { throw Object.assign(new Error('database not reachable'), { code: 6 }); };
+    console.error = (...args) => logged.push(args.join(' '));
+    let res;
+    try {
+        await assert.rejects(business.registerUser('Down', 'down@example.com', 'Password123', 'Password123', 'IT', null), /database not reachable/);
+        res = await register(request.agent(app), { email: 'down@example.com' });
+    } finally {
+        Collection.prototype.insertOne = insertOne;
+        console.error = consoleError;
+    }
+    assert.match(res.text, /Something went wrong. Please try again/);
+    assert.doesNotMatch(res.text, /already/);
+    assert.ok(logged.some(line => /database not reachable/.test(line)), 'the error is logged');
+    assert.equal(await persistence.getUserByEmail('down@example.com'), null);
+});
+
 test('a new profile picture deletes the old file', async () => {
     const { agent } = await login(app, 'omar@example.com');
     const upload = async () => {
