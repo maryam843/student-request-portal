@@ -103,6 +103,28 @@ test('a password reset ends the sessions that were open before it', async () => 
     assert.equal((await login(app, 'sara@example.com', 'NewPassword1')).res.headers.location, '/student-dashboard');
 });
 
+test('resetting the password in the browser that is logged in logs that browser out', async () => {
+    const { agent } = await login(app, 'lina@example.com');
+    const token = await business.generateResetToken('lina@example.com');
+    const errors = [];
+    const consoleError = console.error;
+    console.error = (...args) => errors.push(args.join(' '));
+    let res;
+    try {
+        res = await postForm(agent, '/reset-password', { token, password: 'NewPassword2', confirmPassword: 'NewPassword2' }, '/profile');
+    } finally {
+        console.error = consoleError;
+    }
+    assert.deepEqual(errors, []);
+    assert.equal(res.status, 302);
+    assert.match(decodeURIComponent(res.headers.location), /Password updated/);
+
+    const page = await agent.get('/student-dashboard');
+    assert.equal(page.status, 302);
+    assert.match(page.headers.location, /^\/login/);
+    assert.equal((await login(app, 'lina@example.com', 'NewPassword2')).res.headers.location, '/student-dashboard');
+});
+
 // ---- e-mail verification links ----
 
 /**

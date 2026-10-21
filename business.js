@@ -122,7 +122,7 @@ async function resetPassword(token, newPassword, repeatPassword) {
     // log the user out everywhere; the reset page then sends them to the login page
     await persistence.deleteSessionsOfUser(user.email);
 
-    return { success: true, message: "Password reset successful." };
+    return { success: true, message: "Password reset successful.", email: user.email };
 }
 
 /**

@@ -542,7 +542,16 @@ app.post('/reset-password', async (req, res) => {
     try {
         const result = await business.resetPassword(token, password, confirmPassword);
         if (result.success) {
-            return res.redirect("/login?msg=Password updated. Log in with your new password.");
+            const done = () => res.redirect("/login?msg=Password updated. Log in with your new password.");
+            // the reset deleted the sessions of this user; if this browser was one of them,
+            // end it here too (express-session would otherwise try to update the deleted session)
+            if (req.session.user && req.session.user.email === result.email) {
+                return req.session.destroy(() => {
+                    res.clearCookie('connect.sid');
+                    done();
+                });
+            }
+            return done();
         }
         return res.render('reset-password', { token, error: result.message });
     } catch (err) {
@@ -875,6 +884,11 @@ app.use(async (req, res) => {
  * (Express 5 also sends errors from async routes here)
  */
 app.use(async (err, req, res, next) => {
+    // an error after the page was sent (e.g. saving the session) can only be logged
+    if (res.headersSent) {
+        console.error("Error after the response was sent:", err);
+        return;
+    }
     if (err.code === 'EBADCSRFTOKEN') {
         return showError(req, res, 403, "This form has expired. Please go back, reload the page and try again.");
     }
