@@ -272,20 +272,31 @@ const storage = multer.diskStorage({
 const ALLOWED_IMAGES = {
     'image/jpeg': '.jpg',
     'image/png': '.png',
-    'image/gif': '.gif',
     'image/webp': '.webp'
 };
+const WRONG_IMAGE_TYPE = "Only JPG, PNG or WEBP images are allowed.";
+
+/**
+ * The image type from the first bytes of the file ("magic bytes"), or null.
+ * The browser sends the type and the file name, but both can be faked.
+ */
+function imageTypeOf(bytes) {
+    if (bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
+    if (bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return 'image/jpeg';
+    if (bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP') return 'image/webp';
+    return null;
+}
 
 const upload = multer({
     storage: storage,
     limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
     fileFilter: function (req, file, cb) {
         const extension = path.extname(file.originalname).toLowerCase();
-        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
         if (ALLOWED_IMAGES[file.mimetype] && allowedExtensions.includes(extension)) {
             cb(null, true);
         } else {
-            cb(new Error("Only JPG, PNG, GIF or WEBP images are allowed."));
+            cb(new Error(WRONG_IMAGE_TYPE));
         }
     }
 });
@@ -299,12 +310,31 @@ function deleteUpload(fileName) {
 }
 
 /**
- * Run the upload and keep the error message (too big, wrong type) instead of crashing
+ * Run the upload and keep the error message (too big, wrong type) instead of crashing.
+ * A saved file whose content is not the image type it claims to be is deleted again.
  */
 function uploadProfilePic(req, res, next) {
-    upload.single('profilePic')(req, res, (err) => {
+    upload.single('profilePic')(req, res, async (err) => {
         if (err) {
             req.uploadError = err.code === 'LIMIT_FILE_SIZE' ? "The picture must be 2 MB or smaller." : err.message;
+        } else if (req.file) {
+            const bytes = Buffer.alloc(12);
+            try {
+                const file = await fs.promises.open(req.file.path, 'r');
+                try {
+                    await file.read(bytes, 0, 12, 0);
+                } finally {
+                    await file.close();
+                }
+            } catch (readError) {
+                deleteUpload(req.file.filename);
+                return next(readError);
+            }
+            if (imageTypeOf(bytes) !== req.file.mimetype) {
+                deleteUpload(req.file.filename);
+                req.file = undefined;
+                req.uploadError = "This file is not a real JPG, PNG or WEBP image.";
+            }
         }
         next();
     });

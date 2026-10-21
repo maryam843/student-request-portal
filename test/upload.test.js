@@ -44,7 +44,7 @@ test('a file that is not an image is rejected', async () => {
     assert.equal(res.status, 302);
 
     const page = await agent.get('/profile');
-    assert.match(page.text, /Only JPG, PNG, GIF or WEBP images are allowed/);
+    assert.match(page.text, /Only JPG, PNG or WEBP images are allowed/);
     assert.equal(await profilePicOf('sara@example.com'), undefined);
     assert.deepEqual(newFiles(), []);
 });
@@ -56,7 +56,37 @@ test('an image with a wrong extension is rejected', async () => {
         .field('_csrf', _csrf)
         .attach('profilePic', PNG_HEADER, { filename: 'photo.svg', contentType: 'image/png' });
     const page = await agent.get('/profile');
-    assert.match(page.text, /Only JPG, PNG, GIF or WEBP images are allowed/);
+    assert.match(page.text, /Only JPG, PNG or WEBP images are allowed/);
+    assert.deepEqual(newFiles(), []);
+});
+
+test('a text file named x.png with the PNG type is rejected and deleted', async () => {
+    const { agent } = await login(app, 'sara@example.com');
+    const _csrf = await csrfToken(agent, '/profile');
+    const res = await agent.post('/upload-profile')
+        .field('_csrf', _csrf)
+        .attach('profilePic', Buffer.from('this is plain text, not an image\n'), { filename: 'x.png', contentType: 'image/png' });
+    assert.equal(res.status, 302);
+
+    const page = await agent.get('/profile');
+    assert.match(page.text, /This file is not a real JPG, PNG or WEBP image/);
+    assert.equal(await profilePicOf('sara@example.com'), undefined);
+    assert.deepEqual(newFiles(), []);
+});
+
+test('a JPEG sent as a PNG and a GIF are rejected', async () => {
+    const { agent } = await login(app, 'sara@example.com');
+    const files = [
+        [Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10]), 'photo.png', 'image/png', /This file is not a real JPG, PNG or WEBP image/],
+        [Buffer.from('GIF89a'), 'photo.gif', 'image/gif', /Only JPG, PNG or WEBP images are allowed/]
+    ];
+    for (const [content, filename, contentType, message] of files) {
+        const _csrf = await csrfToken(agent, '/profile');
+        await agent.post('/upload-profile').field('_csrf', _csrf).attach('profilePic', content, { filename, contentType });
+        const page = await agent.get('/profile');
+        assert.match(page.text, message, filename);
+    }
+    assert.equal(await profilePicOf('sara@example.com'), undefined);
     assert.deepEqual(newFiles(), []);
 });
 

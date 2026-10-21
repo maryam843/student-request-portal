@@ -16,9 +16,9 @@
 
         <form action="/upload-profile" method="POST" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="{{csrfToken}}">
-          <label for="profilePic" class="form-label">Change profile picture (JPG, PNG, GIF or WEBP, max 2 MB)</label>
+          <label for="profilePic" class="form-label">Change profile picture (JPG, PNG or WEBP, max 2 MB)</label>
           <input class="form-control mb-3" type="file" id="profilePic" name="profilePic"
-            accept="image/jpeg,image/png,image/gif,image/webp" required>
+            accept="image/jpeg,image/png,image/webp" required>
           <button class="btn btn-primary" type="submit">Upload Picture</button>
         </form>
       </div>
