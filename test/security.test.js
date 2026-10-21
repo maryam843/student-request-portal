@@ -1,6 +1,6 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, teardown, login, firstRequest, request } = require('./helpers');
+const { setup, teardown, login, firstRequest, postForm, request } = require('./helpers');
 
 let app, persistence;
 
@@ -69,4 +69,25 @@ test('outside production the session cookie is httpOnly and SameSite=Lax but not
     assert.match(cookie, /SameSite=Lax/);
     assert.doesNotMatch(cookie, /Secure/);
     assert.equal(res.headers['strict-transport-security'], undefined);
+});
+
+test('text a user types is HTML-escaped on every page that shows it', async () => {
+    const attack = '<script>alert("x")</script><b onmouseover="alert(1)">bold</b>';
+    const escaped = '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;&lt;b onmouseover&#x3D;&quot;alert(1)&quot;&gt;bold&lt;/b&gt;';
+    const student = (await login(app, 'lina@example.com')).agent;
+    const sent = await postForm(student, '/student-request', { semester: `Fall ${new Date().getFullYear()}`, category: 'Attendance', description: attack }, '/student-request');
+    assert.equal(sent.status, 302);
+
+    const db = await persistence.connectDB();
+    const saved = await db.collection('requests').findOne({ description: attack });
+    assert.ok(saved, 'the text is saved as typed');
+
+    const hod = (await login(app, 'hod@example.com')).agent;
+    const pages = [[student, '/student-requests'], [student, `/student/request/${saved._id}`], [hod, '/hod-requests'], [hod, `/hod/view/${saved._id}`]];
+    for (const [agent, path] of pages) {
+        const res = await agent.get(path);
+        assert.equal(res.status, 200, path);
+        assert.ok(res.text.includes(escaped), `${path} shows the escaped text`);
+        assert.ok(!res.text.includes(attack), `${path} contains the raw HTML`);
+    }
 });
