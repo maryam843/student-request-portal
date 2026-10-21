@@ -146,33 +146,60 @@ function semesterList(year = new Date().getFullYear()) {
     return semesters;
 }
 
-// Qatar weekend: Friday (5) and Saturday (6) in JavaScript's getDay()
+// Working hours are Qatar time, whatever the time zone of the server
+const TIME_ZONE = 'Asia/Qatar';
+// Qatar weekend: Friday (5) and Saturday (6), counted like JavaScript's getDay()
 const WEEKEND_DAYS = [5, 6];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const qatarFormat = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE, hourCycle: 'h23', weekday: 'short',
+    year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric'
+});
 
 /**
- * True between 9am and 5pm, Sunday to Thursday.
+ * The date and time of a moment in Qatar, e.g. { year: 2025, month: 1, day: 5, hour: 9, weekday: 0, ... }
  */
-function isWorkingTime(date) {
-    const hour = date.getHours();
-    return !WEEKEND_DAYS.includes(date.getDay()) && hour >= 9 && hour < 17;
+function qatarTime(date) {
+    const parts = Object.fromEntries(qatarFormat.formatToParts(date).map(p => [p.type, p.value]));
+    return {
+        year: Number(parts.year), month: Number(parts.month), day: Number(parts.day),
+        hour: Number(parts.hour), minute: Number(parts.minute), second: Number(parts.second),
+        weekday: WEEKDAYS.indexOf(parts.weekday)
+    };
 }
 
 /**
- * Moves the date to the next 9am (the same day if it is a working day before 9am).
+ * The moment when the clock in Qatar shows this date and time (month 1 = January;
+ * a day past the end of the month moves to the next month, like Date.UTC)
  */
-function moveToNextWorkingStart(date) {
-    if (!WEEKEND_DAYS.includes(date.getDay()) && date.getHours() < 9) {
-        date.setHours(9, 0, 0, 0);
-    } else {
-        date.setHours(9, 0, 0, 0);
-        date.setDate(date.getDate() + 1);
-    }
+function fromQatarTime(year, month, day, hour, minute = 0) {
+    const asUtc = Date.UTC(year, month - 1, day, hour, minute);
+    const shown = qatarTime(new Date(asUtc));
+    const offset = Date.UTC(shown.year, shown.month - 1, shown.day, shown.hour, shown.minute) - asUtc;
+    return new Date(asUtc - offset);
+}
+
+/**
+ * True between 9am and 5pm Qatar time, Sunday to Thursday.
+ */
+function isWorkingTime(date) {
+    const { hour, weekday } = qatarTime(date);
+    return !WEEKEND_DAYS.includes(weekday) && hour >= 9 && hour < 17;
+}
+
+/**
+ * The next 9am in Qatar (the same day if it is a working day before 9am).
+ */
+function nextWorkingStart(date) {
+    const t = qatarTime(date);
+    const sameDay = !WEEKEND_DAYS.includes(t.weekday) && t.hour < 9;
+    return fromQatarTime(t.year, t.month, sameDay ? t.day : t.day + 1, 9);
 }
 
 /**
  * Calculates estimated request completion time based on queue size and working hours
- * (9am-5pm, Sunday to Thursday). Each request already in the queue adds baseMinutes.
- * Uses the server's local time.
+ * (9am-5pm Qatar time, Sunday to Thursday). Each request already in the queue adds baseMinutes.
  */
 function calculateEstimatedCompletionTime(countInQueue, baseMinutes = 15, now = new Date()) {
     let minutesToAdd = countInQueue * baseMinutes;
@@ -180,15 +207,15 @@ function calculateEstimatedCompletionTime(countInQueue, baseMinutes = 15, now = 
 
     // a request sent outside working hours waits until the next working time
     while (!isWorkingTime(estimated)) {
-        moveToNextWorkingStart(estimated);
+        estimated = nextWorkingStart(estimated);
     }
 
     while (minutesToAdd > 0) {
         if (isWorkingTime(estimated)) {
-            estimated.setMinutes(estimated.getMinutes() + 1);
+            estimated = new Date(estimated.getTime() + 60 * 1000);
             minutesToAdd--;
         } else {
-            moveToNextWorkingStart(estimated);
+            estimated = nextWorkingStart(estimated);
         }
     }
 
@@ -236,6 +263,7 @@ async function getRequestsByStudent(email) {
 module.exports = {
     PASSWORD_MIN_LENGTH,
     PASSWORD_TOO_SHORT,
+    TIME_ZONE,
     hashToken,
     registerUser,
     authenticateUser,

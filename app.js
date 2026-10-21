@@ -375,8 +375,9 @@ hbs.registerHelper('statusClass', function (status) {
     return STATUS_CLASSES[status] || "bg-secondary";
 });
 
+// Dates are shown in Qatar time, like the working hours of the estimate
 hbs.registerHelper('formatDate', function(date) {
-    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: business.TIME_ZONE };
     return new Date(date).toLocaleString('en-US', options);
 });
 
