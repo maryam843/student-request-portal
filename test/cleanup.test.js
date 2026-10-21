@@ -128,6 +128,16 @@ test('the semesters are generated from the current year', () => {
     ]);
 });
 
+test('the demo data only uses semesters the form offers this year', async () => {
+    const db = await persistence.connectDB();
+    const semesters = await db.collection('requests').distinct('semester');
+    const year = new Date().getFullYear();
+    assert.deepEqual(semesters.sort(), [`Fall ${year - 2}`, `Spring ${year - 1}`, `Winter ${year - 1}`]);
+    for (const semester of semesters) {
+        assert.ok(business.semesterList().includes(semester), semester);
+    }
+});
+
 test('the request form offers this year and refuses unknown semesters', async () => {
     const year = new Date().getFullYear();
     const { agent } = await login(app, 'lina@example.com');

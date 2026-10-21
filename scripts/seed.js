@@ -26,23 +26,30 @@ const users = [
     { username: 'Lina Demo', email: 'lina@example.com', accountType: 'student', college: 'Engineering' }
 ];
 
+// Semesters relative to the current year, so they stay in business.semesterList()
+// (in 2026: "Winter 2025", "Spring 2025" and "Fall 2024")
+const year = new Date().getFullYear();
+const WINTER = `Winter ${year - 1}`;
+const SPRING = `Spring ${year - 1}`;
+const LAST_FALL = `Fall ${year - 2}`;
+
 // [student email, semester, category, description, status, note, days ago]
 const requests = [
-    ['sara@example.com', 'Winter 2025', 'Course Advice', 'Which elective fits a data science track?', 'Pending', '', 1],
-    ['sara@example.com', 'Winter 2025', 'Registration', 'Please add me to the full section of INFS 3201.', 'Approved', 'Added to section 2.', 6],
-    ['sara@example.com', 'Spring 2025', 'Attendance', 'I missed two classes because of a medical appointment.', 'Rejected', 'Please send the medical note first.', 9],
-    ['sara@example.com', 'Spring 2025', 'Major Change', 'I would like to move from IT to Data Science.', 'Cancelled', '', 12],
-    ['sara@example.com', 'Winter 2025', 'Attendance', 'Late arrival because of a bus delay.', 'Pending', '', 0],
-    ['omar@example.com', 'Winter 2025', 'Registration', 'Time clash between two of my courses.', 'Pending', '', 2],
-    ['omar@example.com', 'Winter 2025', 'Course Advice', 'Can I take Web Technologies 2 before Databases?', 'Pending', '', 1],
-    ['omar@example.com', 'Fall 2024', 'Major Change', 'Switching from Business to IT.', 'Approved', 'Approved. Please meet your new advisor.', 30],
-    ['omar@example.com', 'Spring 2025', 'Attendance', 'Absent during a family emergency.', 'Approved', 'Excused.', 5],
-    ['omar@example.com', 'Winter 2025', 'Registration', 'Request to drop one course after the deadline.', 'Rejected', 'The deadline has passed.', 4],
-    ['lina@example.com', 'Winter 2025', 'Course Advice', 'Which courses should I take next semester?', 'Pending', '', 3],
-    ['lina@example.com', 'Winter 2025', 'Registration', 'Please open an extra lab section.', 'Pending', '', 2],
-    ['lina@example.com', 'Spring 2025', 'Attendance', 'Missed a quiz because of a university event.', 'Approved', 'Excused, quiz will be rescheduled.', 7],
-    ['lina@example.com', 'Winter 2025', 'Major Change', 'Thinking about moving to Engineering.', 'Pending', '', 1],
-    ['lina@example.com', 'Fall 2024', 'Course Advice', 'Is a summer course possible for me?', 'Cancelled', '', 40]
+    ['sara@example.com', WINTER, 'Course Advice', 'Which elective fits a data science track?', 'Pending', '', 1],
+    ['sara@example.com', WINTER, 'Registration', 'Please add me to the full section of INFS 3201.', 'Approved', 'Added to section 2.', 6],
+    ['sara@example.com', SPRING, 'Attendance', 'I missed two classes because of a medical appointment.', 'Rejected', 'Please send the medical note first.', 9],
+    ['sara@example.com', SPRING, 'Major Change', 'I would like to move from IT to Data Science.', 'Cancelled', '', 12],
+    ['sara@example.com', WINTER, 'Attendance', 'Late arrival because of a bus delay.', 'Pending', '', 0],
+    ['omar@example.com', WINTER, 'Registration', 'Time clash between two of my courses.', 'Pending', '', 2],
+    ['omar@example.com', WINTER, 'Course Advice', 'Can I take Web Technologies 2 before Databases?', 'Pending', '', 1],
+    ['omar@example.com', LAST_FALL, 'Major Change', 'Switching from Business to IT.', 'Approved', 'Approved. Please meet your new advisor.', 30],
+    ['omar@example.com', SPRING, 'Attendance', 'Absent during a family emergency.', 'Approved', 'Excused.', 5],
+    ['omar@example.com', WINTER, 'Registration', 'Request to drop one course after the deadline.', 'Rejected', 'The deadline has passed.', 4],
+    ['lina@example.com', WINTER, 'Course Advice', 'Which courses should I take next semester?', 'Pending', '', 3],
+    ['lina@example.com', WINTER, 'Registration', 'Please open an extra lab section.', 'Pending', '', 2],
+    ['lina@example.com', SPRING, 'Attendance', 'Missed a quiz because of a university event.', 'Approved', 'Excused, quiz will be rescheduled.', 7],
+    ['lina@example.com', WINTER, 'Major Change', 'Thinking about moving to Engineering.', 'Pending', '', 1],
+    ['lina@example.com', LAST_FALL, 'Course Advice', 'Is a summer course possible for me?', 'Cancelled', '', 40]
 ];
 
 async function seed() {
