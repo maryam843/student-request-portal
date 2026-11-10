@@ -82,6 +82,17 @@ test('registering the same email twice is caught by the unique index too', async
     assert.equal(second, false);
 });
 
+test('the requests collection has the indexes the student pages and HoD queues use', async () => {
+    const db = await persistence.connectDB();
+    const keys = (await db.collection('requests').indexes()).map(index => JSON.stringify(index.key));
+    assert.ok(keys.includes(JSON.stringify({ studentEmail: 1, status: 1 })), keys.join(' '));
+    assert.ok(keys.includes(JSON.stringify({ status: 1, category: 1 })), keys.join(' '));
+
+    // the HoD queue query is answered from the index, not by reading every request
+    const plan = await db.collection('requests').find({ category: 'Attendance', status: 'Pending' }).explain();
+    assert.match(JSON.stringify(plan.queryPlanner.winningPlan), /IXSCAN/);
+});
+
 test('registering a used email answers exactly like a new one and e-mails the owner instead', async () => {
     const printed = [];
     const log = console.log;

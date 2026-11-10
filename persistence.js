@@ -34,11 +34,15 @@ async function closeDB() {
  * Creates the database indexes the app relies on. Safe to run on every start
  * (MongoDB does nothing if the index already exists).
  * The unique index makes it impossible to have two accounts with the same email.
+ * The requests indexes serve the student pages (by email, and by email and status)
+ * and the HoD queues and counts (by status and category).
  * @returns {Promise} Resolves once the indexes exist.
  */
 async function createIndexes() {
     const db = await connectDB();
     await db.collection('users').createIndex({ email: 1 }, { unique: true });
+    await db.collection('requests').createIndex({ studentEmail: 1, status: 1 });
+    await db.collection('requests').createIndex({ status: 1, category: 1 });
 }
 
 /**
