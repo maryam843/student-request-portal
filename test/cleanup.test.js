@@ -44,13 +44,14 @@ test('a failed registration deletes the uploaded picture', async () => {
     assert.equal(mismatch.status, 400);
     assert.match(mismatch.text, /The passwords do not match/);
 
+    // an email that is already registered gets the normal answer, but no account and no picture
     const taken = await quietRegister({ email: 'sara@example.com' }, PICTURE);
-    assert.equal(taken.status, 400);
-    assert.match(taken.text, /This email is already registered/);
+    assert.equal(taken.status, 302);
 
     // the email check is case-insensitive
     const takenUpper = await quietRegister({ email: 'SARA@example.com' }, PICTURE);
-    assert.equal(takenUpper.status, 400);
+    assert.equal(takenUpper.status, 302);
+    assert.equal(await persistence.getUserByEmail('sara@example.com').then(u => u.username), 'Sara Demo');
 
     // give the async file deletes a moment
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -79,6 +80,32 @@ test('registering the same email twice is caught by the unique index too', async
     assert.ok(first);
     const second = await business.registerUser('Twice', 'twice@example.com', 'Password123', 'Password123', 'IT', null);
     assert.equal(second, false);
+});
+
+test('registering a used email answers exactly like a new one and e-mails the owner instead', async () => {
+    const printed = [];
+    const log = console.log;
+    console.log = (...args) => printed.push(args.join(' '));
+    let fresh, taken;
+    try {
+        fresh = await register(request.agent(app), { email: 'brand.new@example.com' });
+        taken = await register(request.agent(app), { email: 'omar@example.com' });
+    } finally {
+        console.log = log;
+    }
+    assert.equal(fresh.status, 302);
+    assert.equal(taken.status, fresh.status);
+    assert.equal(taken.headers.location, fresh.headers.location);
+    assert.equal(taken.text, fresh.text);
+    assert.match(decodeURIComponent(taken.headers.location), /Account created/);
+
+    const output = printed.join('\n');
+    assert.match(output, /Email to brand\.new@example\.com\nVerification link: /);
+    assert.match(output, /Email to omar@example\.com\nYou already have an account\. Log in, or reset your password here: .*\/forgot-password/);
+    // the existing account is unchanged and not marked unverified
+    const omar = await persistence.getUserByEmail('omar@example.com');
+    assert.equal(omar.username, 'Omar Demo');
+    assert.equal(omar.verified, true);
 });
 
 test('a database error while registering is logged and shown as a general error', async () => {

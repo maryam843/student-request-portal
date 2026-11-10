@@ -456,9 +456,17 @@ app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUp
             return showForm(business.PASSWORD_TOO_SHORT);
         }
 
+        // Same answer whether the email is new or already registered, so nobody can test which
+        // emails have an account (like forgot password); the owner gets an email instead
+        const done = () => res.redirect("/login?msg=Account created. Open the verification link (printed in the server console), then log in.");
+
         const existingUser = await business.getUserByEmail(email);
         if (existingUser) {
-            return showForm("This email is already registered.");
+            if (req.file) {
+                deleteUpload(req.file.filename);
+            }
+            logEmailLink(existingUser.email, "You already have an account. Log in, or reset your password here", `${baseUrl}/forgot-password`);
+            return done();
         }
 
         const userData = await business.registerUser(name, email, password, confirmPassword, college, profilePic);
@@ -469,7 +477,7 @@ app.post('/register', limitTries('register'), uploadProfilePic, checkCsrfAfterUp
 
         logEmailLink(userData.email, "Verification link", `${baseUrl}/verify-email?token=${userData.verificationToken}`);
 
-        return res.redirect("/login?msg=Account created. Open the verification link (printed in the server console), then log in.");
+        return done();
     } catch (error) {
         console.error("Error during registration:", error);
         return showForm("Something went wrong. Please try again.");
