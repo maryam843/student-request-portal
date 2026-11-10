@@ -19,15 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
---------------------------------------------------------------------------------
-
-Third-party code
-
-The page layout and styles are based on the CoreUI Free Bootstrap Admin
-Template 4 (https://coreui.io), which is MIT licensed by its authors:
-Copyright (c) 2022-2023 creativeLabs Łukasz Holeczek and The CoreUI Team.
-The files under public/css and public/vendors/@coreui are CoreUI files and
-keep their own copyright headers. The CoreUI icon sprite
-(public/vendors/@coreui/icons/svg/free.svg) is from CoreUI Icons Free
-(icons: CC BY 4.0). The MIT license above applies to my own code, not to these files.
