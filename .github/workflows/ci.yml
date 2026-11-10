@@ -29,4 +29,5 @@ jobs:
       - run: npm ci
       # fail the build if a dependency has a known high or critical vulnerability
       - run: npm audit --audit-level=high
+      - run: npm run lint
       - run: npm test
