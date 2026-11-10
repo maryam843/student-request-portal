@@ -1,0 +1,3 @@
+# CoreUI files (see THIRD_PARTY_NOTICES.md): not counted in the GitHub language bar
+public/css/style.css linguist-vendored
+public/vendors/** linguist-vendored
