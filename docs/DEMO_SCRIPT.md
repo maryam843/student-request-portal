@@ -16,7 +16,7 @@ Every page after login has the same left menu. Student: **Dashboard**, **New Req
 | 0:00 | Login | Type `sara@example.com` and `Demo@1234`, click **Login** | "I log in as a student." |
 | 0:06 | Student dashboard | Point at the cards (My requests, Pending) and the line "You have 1 new update on your requests." | "The dashboard shows my own requests." |
 | 0:11 | Student dashboard | Click **New Request** in the left menu | |
-| 0:14 | New Request | Semester **Winter 2025**, Category **Registration**, Description `Please add me to the evening section of Web Technologies 2.` Click **Submit Request** | "I send a request to my Head of Department." |
+| 0:14 | New Request | First drop-down: pick any option, Category **Registration**, Description `Please add me to the evening section of Web Technologies 2.` Click **Submit Request** | "I send a request to my Head of Department." |
 | 0:26 | My Requests | Point at the message "Request submitted." and the first row: status **Pending** and the **Estimated completion** date | "The app estimates when it will be handled: 15 minutes for each request waiting in the same category, only in working hours, Sunday to Thursday." |
 | 0:36 | My Requests | Click **Logout** in the left menu | |
 | 0:40 | Login | Type `hod@example.com` and `Demo@1234`, click **Login** | "Now I log in as the Head of Department." |
