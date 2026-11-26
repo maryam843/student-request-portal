@@ -1,5 +1,5 @@
 // Small scripts for the logged-in pages. They are in this file, not in onclick="..."
-// attributes, because the Content Security Policy only allows scripts from our own files.
+// attributes, because the Content Security Policy only allows scripts from the app's own files.
 
 // Menu button on small screens: open or close the left menu
 var menuButton = document.querySelector('.header-toggler');

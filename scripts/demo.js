@@ -6,7 +6,7 @@
  * Nothing needs to be installed except Node.js, and no .env file is needed.
  * All data is lost when you stop the demo (Ctrl+C).
  *
- * The first run downloads a MongoDB server binary (about 100 MB, once),
+ * The first run downloads a MongoDB server binary (about 86 MB, once),
  * so it needs an internet connection and can take a minute.
  */
 const crypto = require('crypto');
